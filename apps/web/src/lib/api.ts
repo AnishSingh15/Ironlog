@@ -65,6 +65,44 @@ export interface User {
   updatedAt: string;
 }
 
+// AI Coach types - mirror apps/server/src/ai/schemas/workoutAnalysis.ts
+export interface ProgressionRecommendation {
+  type: 'progression_recommendation';
+  exercise: string;
+  action: 'increase_weight' | 'maintain' | 'deload' | 'insufficient_data';
+  recommendedWeightKg: number;
+  targetSets: number;
+  targetReps: string;
+  confidence: number;
+  evidence: string[];
+  reasoning: string;
+}
+
+export interface WorkoutAnalysis {
+  summary: string;
+  recommendations: ProgressionRecommendation[];
+  plateauedExercises: string[];
+  overallTrend: 'improving' | 'steady' | 'declining' | 'insufficient_data';
+}
+
+export interface FitnessStateSnapshot {
+  trainingFrequency: {
+    totalSessions: number;
+    weeksSpanned: number;
+    sessionsPerWeek: number;
+  };
+  weeklyVolume: { weekStart: string; totalVolume: number; sessionCount: number }[];
+}
+
+export interface KnowledgeMatch {
+  id: string;
+  source: string;
+  title: string;
+  content: string;
+  chunkIndex: number;
+  score: number;
+}
+
 // Token management utilities
 class TokenManager {
   private static readonly ACCESS_TOKEN_KEY = 'accessToken';
@@ -340,6 +378,19 @@ export class ApiClient {
   // Workout-specific endpoints
   async getTodayWorkout(): Promise<ApiResponse<any>> {
     return this.get('/workouts/today');
+  }
+
+  // AI Coach endpoints
+  async analyzeWorkout(): Promise<ApiResponse<{ analysis: WorkoutAnalysis }>> {
+    return this.post('/ai/analyze-workout');
+  }
+
+  async getFitnessState(): Promise<ApiResponse<FitnessStateSnapshot>> {
+    return this.get('/ai/fitness-state');
+  }
+
+  async searchKnowledge(query: string, limit = 3): Promise<ApiResponse<{ results: KnowledgeMatch[] }>> {
+    return this.get(`/ai/knowledge-search?q=${encodeURIComponent(query)}&limit=${limit}`);
   }
 
   async createRestDay(): Promise<ApiResponse<any>> {

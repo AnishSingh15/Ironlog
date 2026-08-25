@@ -1,3 +1,4 @@
+import { AppShell } from '@/components/AppShell';
 import { BottomNav } from '@/components/BottomNav';
 import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
 import { PWANotifications } from '@/components/PWANotifications';
@@ -6,13 +7,18 @@ import { PWAStatusChecker } from '@/components/PWAStatusChecker';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 // import { Analytics } from '@vercel/analytics/next';
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-const inter = Inter({
+const geistSans = Geist({
   subsets: ['latin'],
-  variable: '--font-inter',
+  variable: '--font-geist-sans',
+});
+
+const geistMono = Geist_Mono({
+  subsets: ['latin'],
+  variable: '--font-geist-mono',
 });
 
 export const viewport: Viewport = {
@@ -21,7 +27,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#22c55e',
+  themeColor: '#0a0a0c',
 };
 
 export const metadata: Metadata = {
@@ -74,9 +80,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        suppressHydrationWarning
+      >
         <Providers>
-          {children}
+          <AppShell>{children}</AppShell>
           <BottomNav />
           <ServiceWorkerRegistration />
           <PWAInstallPrompt />

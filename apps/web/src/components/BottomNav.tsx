@@ -1,31 +1,25 @@
 'use client';
 
 import { useAuthStore } from '@/store/auth';
+import { clsx } from 'clsx';
 import {
-  Dashboard as DashboardIcon,
+  AutoAwesome as AICoachIcon,
+  FitnessCenter as WorkoutIcon,
   History as HistoryIcon,
-  Person as PersonIcon,
+  Settings as SettingsIcon,
+  TrendingUp as ProgressIcon,
 } from '@mui/icons-material';
-import { BottomNavigation, BottomNavigationAction, Paper } from '@mui/material';
-import { motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 
+// Mobile nav caps at 5 items (see DESIGN.md Section 7). "Workout" currently points at
+// /dashboard, which is today's actual training flow - a dedicated Home/Workout split is
+// planned but not yet built, so there is no separate "Home" item pointing nowhere real.
 const navigationItems = [
-  {
-    label: 'Dashboard',
-    value: '/dashboard',
-    icon: <DashboardIcon />,
-  },
-  {
-    label: 'History',
-    value: '/history',
-    icon: <HistoryIcon />,
-  },
-  {
-    label: 'Profile',
-    value: '/profile',
-    icon: <PersonIcon />,
-  },
+  { label: 'Workout', path: '/dashboard', icon: WorkoutIcon },
+  { label: 'Progress', path: '/progress', icon: ProgressIcon },
+  { label: 'History', path: '/history', icon: HistoryIcon },
+  { label: 'AI Coach', path: '/ai-coach', icon: AICoachIcon },
+  { label: 'Settings', path: '/profile', icon: SettingsIcon },
 ];
 
 export function BottomNav() {
@@ -33,60 +27,43 @@ export function BottomNav() {
   const pathname = usePathname();
   const { isAuthenticated } = useAuthStore();
 
-  // Only show bottom navigation on authenticated pages
   if (!isAuthenticated || pathname === '/login' || pathname === '/register' || pathname === '/') {
     return null;
   }
 
-  const handleNavChange = (event: React.SyntheticEvent, newValue: string) => {
-    router.push(newValue);
-  };
-
   return (
-    <motion.div
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      exit={{ y: 100 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+    <nav
+      data-testid="bottom-navigation"
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-border-default bg-surface-1/95 backdrop-blur md:hidden"
     >
-      <Paper
-        sx={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1000,
-        }}
-        elevation={8}
-        data-testid="bottom-navigation"
-      >
-        <BottomNavigation
-          value={pathname}
-          onChange={handleNavChange}
-          sx={{
-            '& .MuiBottomNavigationAction-root': {
-              minWidth: 0,
-              padding: '6px 12px 8px',
-            },
-            '& .MuiBottomNavigationAction-label': {
-              fontSize: '0.75rem',
-              '&.Mui-selected': {
-                fontSize: '0.75rem',
-              },
-            },
-          }}
-        >
-          {navigationItems.map(item => (
-            <BottomNavigationAction
-              key={item.value}
-              label={item.label}
-              value={item.value}
-              icon={item.icon}
-              data-testid={`${item.label.toLowerCase()}-nav`}
-            />
-          ))}
-        </BottomNavigation>
-      </Paper>
-    </motion.div>
+      <div className="flex h-16 items-stretch justify-around px-1">
+        {navigationItems.map(item => {
+          const active = pathname === item.path;
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.path}
+              type="button"
+              onClick={() => router.push(item.path)}
+              data-testid={`${item.label.toLowerCase().replace(' ', '-')}-nav`}
+              className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1"
+            >
+              <Icon
+                fontSize="small"
+                className={active ? 'text-accent' : 'text-text-tertiary'}
+              />
+              <span
+                className={clsx(
+                  'text-[11px] font-medium',
+                  active ? 'text-accent' : 'text-text-tertiary'
+                )}
+              >
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }

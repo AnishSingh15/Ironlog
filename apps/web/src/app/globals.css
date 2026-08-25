@@ -1,74 +1,123 @@
 @import 'tailwindcss';
 
+/*
+ * IronLog design tokens. See apps/web/DESIGN.md for the full system and the
+ * research behind these decisions (Linear/Vercel/Nike/BMW M/Runway/Superhuman/Notion).
+ * One locked accent (Signal Blue), near-black/near-white surfaces (never pure), a
+ * surface ladder instead of shadows on dark, mono for every metric.
+ */
 :root {
-  /* IronLog Color Palette */
-  --orange-primary: #f46036; /* Vibrant orange - primary actions */
-  --green-forest: #3d9970; /* Forest green - success/completed */
-  --sage-green: #a3b18a; /* Sage green - secondary elements */
-  --brown-earth: #9c6644; /* Earth brown - accent */
-  --pink-accent: #e66cb2; /* Pink - highlights/CTA */
-  --charcoal: #3e3e3e; /* Dark text/elements */
-  --cream-light: #efe9e7; /* Light cream - backgrounds */
-  --mint-light: #eaeeea; /* Light mint - subtle backgrounds */
+  /* Light theme */
+  --il-canvas: 0 0% 98%; /* #fafafa */
+  --il-surface-1: 0 0% 100%; /* #ffffff */
+  --il-surface-2: 240 3% 95%; /* #f2f2f3 */
+  --il-surface-3: 240 3% 91%; /* #e9e9eb */
+  --il-border: 240 5% 90%; /* #e4e4e7 */
+  --il-border-strong: 240 4% 84%; /* #d4d4d8 */
+  --il-text-primary: 240 6% 10%; /* #18181b */
+  --il-text-secondary: 240 4% 34%; /* #52525b */
+  --il-text-tertiary: 220 3% 56%; /* #8a8a92 */
+  --il-accent: 221 82% 57%; /* #2F6FED */
+  --il-accent-foreground: 0 0% 100%;
+  --il-accent-subtle: 221 82% 57% / 0.1;
+  --il-success: 152 71% 33%; /* #1E9A5C */
+  --il-warning: 38 87% 37%; /* #B4740B */
+  --il-danger: 358 60% 49%; /* #C93B3F */
+  --il-radius-sm: 8px;
+  --il-radius-lg: 12px;
+  --il-shadow-float: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.06);
 
-  /* Light Mode */
-  --background: 94 20% 96%; /* #EFE9E7 - Light cream */
-  --foreground: 0 0% 24%; /* #3E3E3E - Charcoal */
-  --card: 94 20% 96%; /* #EFE9E7 - Light cream */
-  --card-foreground: 0 0% 24%; /* #3E3E3E - Charcoal */
-  --popover: 94 20% 96%; /* #EFE9E7 - Light cream */
-  --popover-foreground: 0 0% 24%; /* #3E3E3E - Charcoal */
-  --primary: 13 89% 57%; /* #F46036 - Orange primary */
-  --primary-foreground: 94 20% 96%; /* #EFE9E7 - Light text on orange */
-  --secondary: 95 15% 75%; /* #A3B18A - Sage green */
-  --secondary-foreground: 0 0% 24%; /* #3E3E3E - Charcoal */
-  --muted: 120 14% 90%; /* #EAEEEA - Light mint */
-  --muted-foreground: 0 0% 45%; /* Lighter charcoal */
-  --accent: 322 58% 65%; /* #E66CB2 - Pink accent */
-  --accent-foreground: 94 20% 96%; /* #EFE9E7 - Light text on pink */
-  --success: 152 47% 55%; /* #3D9970 - Forest green */
-  --success-foreground: 94 20% 96%; /* #EFE9E7 - Light text on green */
-  --warning: 13 89% 57%; /* #F46036 - Orange for warnings */
-  --warning-foreground: 94 20% 96%; /* #EFE9E7 - Light text */
-  --destructive: 0 84% 60%; /* Red for destructive actions */
-  --destructive-foreground: 94 20% 96%; /* #EFE9E7 - Light text */
-  --border: 120 14% 85%; /* Lighter mint for borders */
-  --input: 120 14% 90%; /* #EAEEEA - Light mint for inputs */
-  --ring: 13 89% 57%; /* #F46036 - Orange for focus rings */
-  --radius: 0.75rem;
+  /* shadcn/MUI compatibility tokens, mapped onto the new system */
+  --background: var(--il-canvas);
+  --foreground: var(--il-text-primary);
+  --card: var(--il-surface-1);
+  --card-foreground: var(--il-text-primary);
+  --popover: var(--il-surface-1);
+  --popover-foreground: var(--il-text-primary);
+  --primary: var(--il-accent);
+  --primary-foreground: var(--il-accent-foreground);
+  --secondary: var(--il-surface-2);
+  --secondary-foreground: var(--il-text-primary);
+  --muted: var(--il-surface-2);
+  --muted-foreground: var(--il-text-secondary);
+  --accent: var(--il-accent);
+  --accent-foreground: var(--il-accent-foreground);
+  --success: var(--il-success);
+  --success-foreground: 0 0% 100%;
+  --warning: var(--il-warning);
+  --warning-foreground: 0 0% 100%;
+  --destructive: var(--il-danger);
+  --destructive-foreground: 0 0% 100%;
+  --border: var(--il-border);
+  --input: var(--il-border);
+  --ring: var(--il-accent);
+  --radius: 0.5rem;
 }
 
 .dark {
-  /* Dark Mode */
-  --background: 0 0% 24%; /* #3E3E3E - Charcoal background */
-  --foreground: 94 20% 96%; /* #EFE9E7 - Light cream text */
-  --card: 0 0% 28%; /* Slightly lighter charcoal */
-  --card-foreground: 94 20% 96%; /* #EFE9E7 - Light cream text */
-  --popover: 0 0% 24%; /* #3E3E3E - Charcoal */
-  --popover-foreground: 94 20% 96%; /* #EFE9E7 - Light cream text */
-  --primary: 13 89% 57%; /* #F46036 - Orange primary */
-  --primary-foreground: 0 0% 24%; /* #3E3E3E - Dark text on orange */
-  --secondary: 25 24% 40%; /* #9C6644 - Earth brown */
-  --secondary-foreground: 94 20% 96%; /* #EFE9E7 - Light text */
-  --muted: 0 0% 32%; /* Darker charcoal for muted */
-  --muted-foreground: 94 10% 70%; /* Muted cream */
-  --accent: 322 58% 65%; /* #E66CB2 - Pink accent */
-  --accent-foreground: 0 0% 24%; /* #3E3E3E - Dark text on pink */
-  --success: 152 47% 55%; /* #3D9970 - Forest green */
-  --success-foreground: 94 20% 96%; /* #EFE9E7 - Light text */
-  --warning: 13 89% 57%; /* #F46036 - Orange */
-  --warning-foreground: 0 0% 24%; /* #3E3E3E - Dark text */
-  --destructive: 0 84% 60%; /* Red for destructive */
-  --destructive-foreground: 94 20% 96%; /* #EFE9E7 - Light text */
-  --border: 0 0% 32%; /* Darker charcoal for borders */
-  --input: 0 0% 32%; /* Darker charcoal for inputs */
-  --ring: 13 89% 57%; /* #F46036 - Orange for focus */
+  --il-canvas: 240 6% 4%; /* #0a0a0c */
+  --il-surface-1: 240 5% 8%; /* #131316 */
+  --il-surface-2: 240 5% 11%; /* #1a1a1e */
+  --il-surface-3: 240 5% 14%; /* #212126 */
+  --il-border: 240 6% 17%; /* #2a2a30 */
+  --il-border-strong: 240 8% 23%; /* #3a3a42 */
+  --il-text-primary: 240 6% 95%; /* #f2f2f4 */
+  --il-text-secondary: 240 3% 66%; /* #a3a3ab */
+  --il-text-tertiary: 240 3% 44%; /* #6b6b74 */
+  --il-accent: 223 100% 69%; /* #5B8DFF */
+  --il-accent-foreground: 240 6% 4%;
+  --il-accent-subtle: 223 100% 69% / 0.1;
+  --il-success: 152 58% 52%; /* #3DD68C */
+  --il-warning: 36 76% 58%; /* #E8A33D */
+  --il-danger: 359 74% 62%; /* #E5484D */
+  --il-shadow-float: none;
+
+  --background: var(--il-canvas);
+  --foreground: var(--il-text-primary);
+  --card: var(--il-surface-1);
+  --card-foreground: var(--il-text-primary);
+  --popover: var(--il-surface-1);
+  --popover-foreground: var(--il-text-primary);
+  --primary: var(--il-accent);
+  --primary-foreground: var(--il-accent-foreground);
+  --secondary: var(--il-surface-2);
+  --secondary-foreground: var(--il-text-primary);
+  --muted: var(--il-surface-2);
+  --muted-foreground: var(--il-text-secondary);
+  --accent: var(--il-accent);
+  --accent-foreground: var(--il-accent-foreground);
+  --success: var(--il-success);
+  --success-foreground: 240 6% 4%;
+  --warning: var(--il-warning);
+  --warning-foreground: 240 6% 4%;
+  --destructive: var(--il-danger);
+  --destructive-foreground: 240 6% 4%;
+  --border: var(--il-border);
+  --input: var(--il-border);
+  --ring: var(--il-accent);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* IronLog surface ladder, text hierarchy, and semantic colors as Tailwind utilities */
+  --color-canvas: hsl(var(--il-canvas));
+  --color-surface-1: hsl(var(--il-surface-1));
+  --color-surface-2: hsl(var(--il-surface-2));
+  --color-surface-3: hsl(var(--il-surface-3));
+  --color-border-default: hsl(var(--il-border));
+  --color-border-strong: hsl(var(--il-border-strong));
+  --color-text-primary: hsl(var(--il-text-primary));
+  --color-text-secondary: hsl(var(--il-text-secondary));
+  --color-text-tertiary: hsl(var(--il-text-tertiary));
+  --color-accent: hsl(var(--il-accent));
+  --color-accent-foreground: hsl(var(--il-accent-foreground));
+  --color-success: hsl(var(--il-success));
+  --color-warning: hsl(var(--il-warning));
+  --color-danger: hsl(var(--il-danger));
 }
 
 * {
@@ -79,10 +128,10 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
   transition:
-    background-color 0.3s ease,
-    color 0.3s ease;
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 /* Custom scrollbar */
@@ -95,19 +144,19 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground));
+  background: hsl(var(--il-text-tertiary));
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--foreground));
+  background: hsl(var(--il-text-secondary));
 }
 
-/* Custom animations */
+/* Motion: purposeful only (entrance, confirmation, state change) - see DESIGN.md Section 11 */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
@@ -116,13 +165,13 @@ body {
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.2s ease-out;
 }
 
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(100%);
+    transform: translateY(24px);
   }
   to {
     opacity: 1;
@@ -131,112 +180,25 @@ body {
 }
 
 .animate-slide-up {
-  animation: slideUp 0.4s ease-out;
+  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes pulse {
-  0%,
+@keyframes metricPulse {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.04);
+  }
   100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
+    transform: scale(1);
   }
 }
 
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+.animate-metric-pulse {
+  animation: metricPulse 0.18s ease-out;
 }
 
-/* Gradient backgrounds with new palette */
-.gradient-bg {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-}
-
-.gradient-primary {
-  background: linear-gradient(135deg, #f46036 0%, #e66cb2 100%);
-}
-
-.gradient-success {
-  background: linear-gradient(135deg, #3d9970 0%, #a3b18a 100%);
-}
-
-.gradient-earth {
-  background: linear-gradient(135deg, #9c6644 0%, #a3b18a 100%);
-}
-
-.gradient-text {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Enhanced glass morphism with new colors */
-.glass {
-  background: hsla(var(--background), 0.8);
-  backdrop-filter: blur(10px);
-  border: 1px solid hsla(var(--border), 0.3);
-  box-shadow: 0 8px 32px hsla(var(--primary), 0.1);
-}
-
-.glass-card {
-  background: hsla(var(--card), 0.9);
-  backdrop-filter: blur(20px);
-  border: 1px solid hsla(var(--border), 0.2);
-  box-shadow: 0 8px 32px hsla(var(--primary), 0.08);
-}
-
-/* Button styles with new palette */
-.btn-primary {
-  background: linear-gradient(135deg, #f46036 0%, #e66cb2 100%);
-  color: #efe9e7;
-  border: none;
-  transition: all 0.3s ease;
-}
-
-.btn-primary:hover {
-  background: linear-gradient(135deg, #e55025 0%, #d555a1 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(244, 96, 54, 0.3);
-}
-
-.btn-success {
-  background: linear-gradient(135deg, #3d9970 0%, #a3b18a 100%);
-  color: #efe9e7;
-  border: none;
-  transition: all 0.3s ease;
-}
-
-.btn-success:hover {
-  background: linear-gradient(135deg, #2e7a5a 0%, #8fa074 100%);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(61, 153, 112, 0.3);
-}
-
-.btn-secondary {
-  background: #a3b18a;
-  color: #3e3e3e;
-  border: none;
-  transition: all 0.3s ease;
-}
-
-.btn-secondary:hover {
-  background: #8fa074;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(163, 177, 138, 0.3);
-}
-
-/* Improved focus styles */
-.focus-ring {
-  focus: outline-none;
-  focus: ring-2;
-  focus: ring-hsl(var(--ring));
-  focus: ring-offset-2;
-  focus: ring-offset-hsl(var(--background));
-}
-
-/* Animation preferences */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;

@@ -81,3 +81,7 @@ node_modules
 
 # Claude Code worktrees
 .claude/
+
+# Local AI tooling (skills CLI)
+.agents/
+skills-lock.json

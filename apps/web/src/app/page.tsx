@@ -7,86 +7,63 @@ export const metadata: Metadata = {
     'Track your workouts, monitor progress, and achieve your fitness goals with IronLog.',
 };
 
-const features = [
+const capabilities = [
   {
-    title: 'Smart Workout Tracking',
-    description: 'Pre-defined workout splits with automatic progression tracking',
+    title: 'Real workout tracking',
+    description: 'Log every set against your actual training history, not a generic template.',
   },
   {
-    title: 'Built-in Rest Timer',
-    description: 'Never miss a beat with our intelligent rest timer and notifications',
+    title: 'AI training coach',
+    description: 'Progression and plateau analysis grounded in your logged sets, not guesses.',
   },
   {
-    title: 'Progress Analytics',
-    description: 'Visual progress tracking with calendar heatmaps and detailed statistics',
+    title: 'Built-in rest timer',
+    description: 'Stay on rhythm mid-session without reaching for a separate app.',
   },
   {
-    title: 'Secure & Private',
-    description: 'Your data is protected with enterprise-grade security and encryption',
+    title: 'Progress analytics',
+    description: 'Volume, frequency, and trend data that answers real training questions.',
   },
 ];
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Hero Section */}
-      <div className="container mx-auto px-4 pt-16 pb-24">
-        <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-amber-800 to-orange-600 bg-clip-text text-transparent">
-            IronLog
+    <div className="min-h-screen bg-canvas">
+      <div className="mx-auto max-w-5xl px-6 pb-20 pt-20 md:pt-28">
+        <div className="max-w-2xl">
+          <p className="font-mono text-sm font-medium text-accent">IRONLOG</p>
+          <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-text-primary md:text-6xl">
+            Training, measured.
           </h1>
-          <h2 className="text-xl md:text-2xl text-amber-900 mb-6 font-light">
-            Professional Fitness Tracking for Serious Athletes
-          </h2>
-          <p className="text-lg text-amber-700 mb-8 max-w-2xl mx-auto">
-            Track your workouts, monitor your progress, and achieve your fitness goals with our
-            comprehensive fitness tracking platform.
+          <p className="mt-5 max-w-lg text-lg text-text-secondary">
+            Log every set, see real progression, and get coaching grounded in your own training
+            data - not a generic plan.
           </p>
-          <div className="flex gap-4 justify-center flex-wrap">
+          <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/register"
               data-testid="register-link"
-              className="px-8 py-3 bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-700 hover:to-orange-600 text-white font-medium rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg hover:shadow-xl"
+              className="inline-flex h-12 items-center rounded-lg bg-accent px-6 text-sm font-semibold text-accent-foreground transition-opacity hover:opacity-90"
             >
-              Get Started Free
+              Get started
             </Link>
             <Link
               href="/login"
               data-testid="login-link"
-              className="px-8 py-3 border-2 border-amber-600 text-amber-800 hover:bg-amber-600 hover:text-white font-medium rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+              className="inline-flex h-12 items-center rounded-lg border border-border-strong px-6 text-sm font-semibold text-text-primary transition-colors hover:bg-surface-2"
             >
-              Sign In
+              Sign in
             </Link>
           </div>
         </div>
 
-        {/* Features Section */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="bg-white/70 backdrop-blur-sm border border-amber-200 rounded-2xl p-6 hover:bg-white/90 hover:border-amber-300 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
-            >
-              <h3 className="text-lg font-semibold text-amber-900 mb-3">{feature.title}</h3>
-              <p className="text-amber-700 text-sm">{feature.description}</p>
+        <div className="mt-20 grid grid-cols-1 gap-px overflow-hidden rounded-xl border border-border-default bg-border-default sm:grid-cols-2">
+          {capabilities.map(item => (
+            <div key={item.title} className="bg-surface-1 p-6">
+              <h3 className="text-base font-semibold text-text-primary">{item.title}</h3>
+              <p className="mt-2 text-sm text-text-secondary">{item.description}</p>
             </div>
           ))}
-        </div>
-
-        {/* CTA Section */}
-        <div className="bg-gradient-to-r from-amber-100 to-orange-100 border border-amber-200 rounded-2xl p-8 text-center shadow-lg">
-          <h3 className="text-2xl md:text-3xl font-semibold text-amber-900 mb-4">
-            Ready to Transform Your Fitness Journey?
-          </h3>
-          <p className="text-amber-800 mb-6 text-lg">
-            Join thousands of athletes who trust IronLog to track their progress.
-          </p>
-          <Link
-            href="/register"
-            className="inline-block px-10 py-4 bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-700 hover:to-orange-600 text-white font-medium rounded-xl transition-all duration-200 transform hover:scale-105 text-lg shadow-lg hover:shadow-xl"
-          >
-            Start Tracking Today
-          </Link>
         </div>
       </div>
     </div>

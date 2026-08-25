@@ -43,18 +43,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Show loading state during auth initialization
   if (!authInitialized) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-          fontSize: '18px',
-          fontWeight: 'bold',
-          color: '#F46036',
-        }}
-      >
-        🏋️ Loading IronLog...
+      <div className="flex h-screen items-center justify-center bg-canvas">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border-default border-t-accent" />
       </div>
     );
   }

@@ -8,6 +8,7 @@ import {
   FitnessCenter as WorkoutIcon,
   FitnessCenterOutlined as ExercisesIcon,
   History as HistoryIcon,
+  Home as HomeIcon,
   Logout as LogoutIcon,
   Settings as SettingsIcon,
   TrendingUp as ProgressIcon,
@@ -17,7 +18,8 @@ import { usePathname, useRouter } from 'next/navigation';
 const navSections = [
   {
     items: [
-      { label: 'Workout', path: '/dashboard', icon: WorkoutIcon },
+      { label: 'Home', path: '/dashboard', icon: HomeIcon },
+      { label: 'Workout', path: '/workout', icon: WorkoutIcon },
       { label: 'Progress', path: '/progress', icon: ProgressIcon },
       { label: 'History', path: '/history', icon: HistoryIcon },
       { label: 'AI Coach', path: '/ai-coach', icon: AICoachIcon },

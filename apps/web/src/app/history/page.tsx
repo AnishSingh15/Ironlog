@@ -342,7 +342,7 @@ export default function HistoryPage() {
                 icon={<FitnessCenterIcon fontSize="large" />}
                 title="No workouts this month"
                 description="Start your first workout to see your progress here."
-                action={<Button onClick={() => router.push('/dashboard')}>Start workout</Button>}
+                action={<Button onClick={() => router.push('/workout')}>Start workout</Button>}
               />
             )}
 

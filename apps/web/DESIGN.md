@@ -159,8 +159,9 @@ Rebuilt from scratch, matching Linear/Vercel's single-line, no-clutter nav disci
 - **Desktop:** left sidebar — Home, Workout, Plan, Progress, AI Coach, History, Settings. 64px
   logo row, hairline-divided sections, active item marked by accent-tinted background + accent
   left-border (not a filled pill — reserve pills for the workout CTA only).
-- **Mobile:** bottom nav, 5 items max (Home, Workout, Progress, AI Coach, Settings — History and
-  Plan nest under Home/Progress to avoid a 7-item bottom bar), large touch targets (56px height
+- **Mobile:** bottom nav, 5 items max (Home, Workout, Progress, History, AI Coach — Settings
+  drops to the profile menu in AppHeader, reachable from every page, and Plan nests under
+  Progress once it exists, to avoid a 7-item bottom bar), large touch targets (56px height
   minimum), current route marked by accent icon fill, not color-only (accessibility).
 
 ## 8. Data Visualization

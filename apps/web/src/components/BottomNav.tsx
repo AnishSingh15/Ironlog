@@ -6,20 +6,20 @@ import {
   AutoAwesome as AICoachIcon,
   FitnessCenter as WorkoutIcon,
   History as HistoryIcon,
-  Settings as SettingsIcon,
+  Home as HomeIcon,
   TrendingUp as ProgressIcon,
 } from '@mui/icons-material';
 import { usePathname, useRouter } from 'next/navigation';
 
-// Mobile nav caps at 5 items (see DESIGN.md Section 7). "Workout" currently points at
-// /dashboard, which is today's actual training flow - a dedicated Home/Workout split is
-// planned but not yet built, so there is no separate "Home" item pointing nowhere real.
+// Mobile nav caps at 5 items (see DESIGN.md Section 7). Settings isn't a dedicated tab
+// here - it's one tap away via the profile menu in AppHeader on every page - so Home and
+// Workout (the two contexts the brief calls out explicitly) both get a slot instead.
 const navigationItems = [
-  { label: 'Workout', path: '/dashboard', icon: WorkoutIcon },
+  { label: 'Home', path: '/dashboard', icon: HomeIcon },
+  { label: 'Workout', path: '/workout', icon: WorkoutIcon },
   { label: 'Progress', path: '/progress', icon: ProgressIcon },
   { label: 'History', path: '/history', icon: HistoryIcon },
   { label: 'AI Coach', path: '/ai-coach', icon: AICoachIcon },
-  { label: 'Settings', path: '/profile', icon: SettingsIcon },
 ];
 
 export function BottomNav() {

@@ -1,42 +1,26 @@
 'use client';
 
 import { AppHeader } from '@/components/AppHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Skeleton as IlSkeleton } from '@/components/ui/Skeleton';
 import { WeightDisplay } from '@/components/WeightComponents';
 import { useWeightUnit } from '@/contexts/WeightUnitContext';
-import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
-import {
-  BarChart as BarChartIcon,
-  FilterList as FilterIcon,
-  Sort as SortIcon,
-} from '@mui/icons-material';
+import { BarChart as BarChartIcon, FilterList as FilterIcon, Sort as SortIcon } from '@mui/icons-material';
 import {
   Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Container,
   FormControl,
-  Grid,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
-  Skeleton,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -51,21 +35,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 },
-  transition: { duration: 0.3, ease: 'easeOut' },
-};
-
-const staggerContainer = {
-  animate: {
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 
 interface SetRecord {
   id: string;
@@ -93,7 +64,7 @@ interface ExerciseStats {
   avgVolume: number;
   totalSets: number;
   lastPerformed: string;
-  progression: number; // Percentage change from first to latest performance
+  progression: number;
 }
 
 interface VolumeData {
@@ -102,22 +73,20 @@ interface VolumeData {
   sets: number;
 }
 
+// Desaturated categorical palette (accent + neutrals) for the muscle-group pie chart -
+// no rainbow, no reused old-palette hues. See DESIGN.md Section 8.
+const chartColors = ['#2F6FED', '#8a8a92', '#5B8DFF', '#c4c4ca', '#3a3a42'];
+
 export default function ProgressPage() {
   const router = useRouter();
-  const theme = useTheme();
-  const { user, isAuthenticated } = useAuthStore();
-  const { logout } = useAuth();
+  const { isAuthenticated } = useAuthStore();
   const { useMetricSystem } = useWeightUnit();
 
-  const [setRecords, setSetRecords] = useState<SetRecord[]>([]);
   const [exerciseStats, setExerciseStats] = useState<ExerciseStats[]>([]);
   const [volumeData, setVolumeData] = useState<VolumeData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  // Filters and sorting
   const [muscleGroupFilter, setMuscleGroupFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'oneRM' | 'volume' | 'lastPerformed'>('oneRM');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -138,14 +107,12 @@ export default function ProgressPage() {
       setIsLoading(true);
       setError(null);
 
-      // Get all set records
       const response = await api.get('/set-records');
       const responseData = response.data as any;
       const records: SetRecord[] = (responseData.data || responseData).filter(
         (record: SetRecord) => record.actualWeight && record.actualReps
       );
 
-      setSetRecords(records);
       calculateExerciseStats(records);
       calculateVolumeData(records);
     } catch (error: any) {
@@ -168,11 +135,7 @@ export default function ProgressPage() {
         exerciseMap.set(exercise.id, {
           exerciseName: exercise.name,
           muscleGroup: exercise.muscleGroup,
-          bestSet: {
-            weight: record.actualWeight,
-            reps: record.actualReps,
-            oneRM,
-          },
+          bestSet: { weight: record.actualWeight, reps: record.actualReps, oneRM },
           totalVolume: volume,
           avgVolume: volume,
           totalSets: 1,
@@ -182,28 +145,20 @@ export default function ProgressPage() {
       } else {
         const stats = exerciseMap.get(exercise.id)!;
 
-        // Update best set if this one is better
         if (oneRM > stats.bestSet.oneRM) {
-          stats.bestSet = {
-            weight: record.actualWeight,
-            reps: record.actualReps,
-            oneRM,
-          };
+          stats.bestSet = { weight: record.actualWeight, reps: record.actualReps, oneRM };
         }
 
-        // Update totals
         stats.totalVolume += volume;
         stats.totalSets += 1;
         stats.avgVolume = stats.totalVolume / stats.totalSets;
 
-        // Update last performed if this is more recent
         if (new Date(record.workoutDay.date) > new Date(stats.lastPerformed)) {
           stats.lastPerformed = record.workoutDay.date;
         }
       }
     });
 
-    // Calculate progression for each exercise
     exerciseMap.forEach((stats, exerciseId) => {
       const exerciseRecords = records
         .filter(r => r.exercise.id === exerciseId)
@@ -239,17 +194,16 @@ export default function ProgressPage() {
       }
     });
 
-    const volumeData: VolumeData[] = Array.from(volumeMap.entries()).map(([muscleGroup, data]) => ({
-      muscleGroup,
-      volume: data.volume,
-      sets: data.sets,
-    }));
-
-    setVolumeData(volumeData);
+    setVolumeData(
+      Array.from(volumeMap.entries()).map(([muscleGroup, data]) => ({
+        muscleGroup,
+        volume: data.volume,
+        sets: data.sets,
+      }))
+    );
   };
 
   const calculateOneRM = (weight: number, reps: number): number => {
-    // Epley formula: 1RM = weight * (1 + reps/30)
     return Math.round(weight * (1 + reps / 30));
   };
 
@@ -286,265 +240,183 @@ export default function ProgressPage() {
     });
   };
 
-  const getProgressionColor = (progression: number) => {
-    if (progression > 0) return theme.palette.success.main;
-    if (progression < 0) return theme.palette.error.main;
-    return theme.palette.text.secondary;
+  const progressionClass = (progression: number) => {
+    if (progression > 0) return 'text-success';
+    if (progression < 0) return 'text-danger';
+    return 'text-text-secondary';
   };
-
-  const chartColors = ['#F46036', '#3D9970', '#A3B18A', '#9C6644', '#E66CB2'];
 
   if (!isAuthenticated) {
     return null;
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-      {/* Header */}
-      <AppHeader title="Progress Tracker" />
+    <div className="min-h-screen bg-canvas">
+      <AppHeader title="Progress" />
 
-      <Container maxWidth="lg" sx={{ py: 3 }}>
-        <motion.div initial="initial" animate="animate" variants={staggerContainer}>
-          {error && (
-            <motion.div variants={fadeInUp}>
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {error}
-              </Alert>
-            </motion.div>
-          )}
+      <div className="mx-auto max-w-5xl px-4 py-5 pb-24 md:pb-6">
+        {error && (
+          <Alert severity="error" className="!mb-4 !rounded-lg">
+            {error}
+          </Alert>
+        )}
 
-          {/* Filters and Controls */}
-          <motion.div variants={fadeInUp}>
-            <Card sx={{ mb: 3 }}>
-              <CardContent>
-                <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} sm={4}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Muscle Group</InputLabel>
-                      <Select
-                        value={muscleGroupFilter}
-                        label="Muscle Group"
-                        onChange={e => setMuscleGroupFilter(e.target.value)}
-                        startAdornment={<FilterIcon sx={{ mr: 1 }} />}
-                      >
-                        {muscleGroups.map(group => (
-                          <MenuItem key={group} value={group}>
-                            {group === 'all' ? 'All Muscle Groups' : group}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <FormControl fullWidth size="small">
-                      <InputLabel>Sort By</InputLabel>
-                      <Select
-                        value={sortBy}
-                        label="Sort By"
-                        onChange={e => setSortBy(e.target.value as any)}
-                        startAdornment={<SortIcon sx={{ mr: 1 }} />}
-                      >
-                        <MenuItem value="oneRM">1-Rep Max</MenuItem>
-                        <MenuItem value="volume">Total Volume</MenuItem>
-                        <MenuItem value="lastPerformed">Last Performed</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-                  <Grid item xs={12} sm={4}>
-                    <Button
-                      variant="outlined"
-                      onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                      startIcon={<SortIcon />}
-                      fullWidth
-                    >
-                      {sortOrder === 'desc' ? 'Descending' : 'Ascending'}
-                    </Button>
-                  </Grid>
-                </Grid>
-              </CardContent>
+        <Card className="mb-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <FormControl fullWidth size="small">
+              <InputLabel>Muscle Group</InputLabel>
+              <Select
+                value={muscleGroupFilter}
+                label="Muscle Group"
+                onChange={e => setMuscleGroupFilter(e.target.value)}
+                startAdornment={<FilterIcon fontSize="small" className="mr-1 text-text-tertiary" />}
+              >
+                {muscleGroups.map(group => (
+                  <MenuItem key={group} value={group}>
+                    {group === 'all' ? 'All muscle groups' : group}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl fullWidth size="small">
+              <InputLabel>Sort by</InputLabel>
+              <Select
+                value={sortBy}
+                label="Sort by"
+                onChange={e => setSortBy(e.target.value as any)}
+                startAdornment={<SortIcon fontSize="small" className="mr-1 text-text-tertiary" />}
+              >
+                <MenuItem value="oneRM">1-rep max</MenuItem>
+                <MenuItem value="volume">Total volume</MenuItem>
+                <MenuItem value="lastPerformed">Last performed</MenuItem>
+              </Select>
+            </FormControl>
+            <Button
+              variant="secondary"
+              onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+            >
+              <SortIcon fontSize="small" />
+              {sortOrder === 'desc' ? 'Descending' : 'Ascending'}
+            </Button>
+          </div>
+        </Card>
+
+        {!isLoading && volumeData.length > 0 && (
+          <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Card className="md:col-span-2">
+              <h2 className="mb-3 text-base font-semibold text-text-primary">
+                Volume by muscle group
+              </h2>
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={volumeData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--il-border)" />
+                  <XAxis dataKey="muscleGroup" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip
+                    formatter={(value: any, name: any) => [
+                      name === 'volume' ? `${value} ${useMetricSystem ? 'kg' : 'lbs'}` : value,
+                      name === 'volume' ? 'Total volume' : 'Total sets',
+                    ]}
+                  />
+                  <Bar dataKey="volume" fill="#2F6FED" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </Card>
-          </motion.div>
-
-          {/* Volume Charts */}
-          {!isLoading && volumeData.length > 0 && (
-            <motion.div variants={fadeInUp}>
-              <Grid container spacing={3} sx={{ mb: 3 }}>
-                <Grid item xs={12} md={8}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Volume by Muscle Group
-                      </Typography>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={volumeData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="muscleGroup" />
-                          <YAxis />
-                          <Tooltip
-                            formatter={(value: any, name: any) => [
-                              name === 'volume'
-                                ? `${value} ${useMetricSystem ? 'kg' : 'lbs'}`
-                                : value,
-                              name === 'volume' ? 'Total Volume' : 'Total Sets',
-                            ]}
-                          />
-                          <Bar dataKey="volume" fill="#F46036" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <Card>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Sets Distribution
-                      </Typography>
-                      <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                          <Pie
-                            data={volumeData}
-                            dataKey="sets"
-                            nameKey="muscleGroup"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={80}
-                            label={({ muscleGroup, percent }: any) =>
-                              `${muscleGroup}: ${(percent * 100).toFixed(0)}%`
-                            }
-                          >
-                            {volumeData.map((entry, index) => (
-                              <Cell key={index} fill={chartColors[index % chartColors.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              </Grid>
-            </motion.div>
-          )}
-
-          {/* Exercise Stats Table */}
-          <motion.div variants={fadeInUp}>
             <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Personal Records & Performance
-                </Typography>
-                {isLoading ? (
-                  <Box>
-                    {[...Array(5)].map((_, i) => (
-                      <Skeleton key={i} variant="rectangular" height={60} sx={{ mb: 1 }} />
+              <h2 className="mb-3 text-base font-semibold text-text-primary">Sets distribution</h2>
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={volumeData}
+                    dataKey="sets"
+                    nameKey="muscleGroup"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label={({ muscleGroup, percent }: any) =>
+                      `${muscleGroup}: ${(percent * 100).toFixed(0)}%`
+                    }
+                  >
+                    {volumeData.map((entry, index) => (
+                      <Cell key={index} fill={chartColors[index % chartColors.length]} />
                     ))}
-                  </Box>
-                ) : (
-                  <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
-                    <Table stickyHeader>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>
-                            <strong>Exercise</strong>
-                          </TableCell>
-                          <TableCell>
-                            <strong>Muscle Group</strong>
-                          </TableCell>
-                          <TableCell align="center">
-                            <strong>Best Set</strong>
-                          </TableCell>
-                          <TableCell align="center">
-                            <strong>1-Rep Max</strong>
-                          </TableCell>
-                          <TableCell align="center">
-                            <strong>Total Volume</strong>
-                          </TableCell>
-                          <TableCell align="center">
-                            <strong>Total Sets</strong>
-                          </TableCell>
-                          <TableCell align="center">
-                            <strong>Progression</strong>
-                          </TableCell>
-                          <TableCell align="center">
-                            <strong>Last Performed</strong>
-                          </TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {filteredAndSortedStats.map(stat => (
-                          <TableRow key={stat.exerciseName} hover>
-                            <TableCell>
-                              <Typography variant="body2" fontWeight="bold">
-                                {stat.exerciseName}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Chip
-                                label={stat.muscleGroup}
-                                size="small"
-                                sx={{
-                                  background: 'linear-gradient(135deg, #3D9970 0%, #A3B18A 100%)',
-                                  color: '#EFE9E7',
-                                }}
-                              />
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography variant="body2">
-                                <WeightDisplay weight={stat.bestSet.weight} /> × {stat.bestSet.reps}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography variant="body2" fontWeight="bold">
-                                <WeightDisplay weight={stat.bestSet.oneRM} />
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography variant="body2">
-                                <WeightDisplay weight={Math.round(stat.totalVolume)} />
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography variant="body2">{stat.totalSets}</Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography
-                                variant="body2"
-                                sx={{ color: getProgressionColor(stat.progression) }}
-                                fontWeight="bold"
-                              >
-                                {stat.progression > 0 ? '+' : ''}
-                                {stat.progression.toFixed(1)}%
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Typography variant="body2">
-                                {formatDate(stat.lastPerformed)}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-
-                {!isLoading && filteredAndSortedStats.length === 0 && (
-                  <Box sx={{ textAlign: 'center', py: 4 }}>
-                    <BarChartIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                    <Typography variant="h6" color="text.secondary">
-                      No progress data available
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Complete some workouts to see your progress stats!
-                    </Typography>
-                  </Box>
-                )}
-              </CardContent>
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
             </Card>
-          </motion.div>
-        </motion.div>
-      </Container>
-    </Box>
+          </div>
+        )}
+
+        <Card>
+          <h2 className="mb-3 text-base font-semibold text-text-primary">
+            Personal records &amp; performance
+          </h2>
+          {isLoading ? (
+            <div className="flex flex-col gap-2">
+              {[...Array(5)].map((_, i) => (
+                <IlSkeleton key={i} className="h-14 w-full" />
+              ))}
+            </div>
+          ) : filteredAndSortedStats.length === 0 ? (
+            <EmptyState
+              icon={<BarChartIcon fontSize="large" />}
+              title="No progress data yet"
+              description="Complete some workouts to see your progress stats."
+            />
+          ) : (
+            <TableContainer className="max-h-[600px]">
+              <Table stickyHeader size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Exercise</TableCell>
+                    <TableCell>Muscle group</TableCell>
+                    <TableCell align="center">Best set</TableCell>
+                    <TableCell align="center">1-rep max</TableCell>
+                    <TableCell align="center">Total volume</TableCell>
+                    <TableCell align="center">Sets</TableCell>
+                    <TableCell align="center">Progression</TableCell>
+                    <TableCell align="center">Last performed</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredAndSortedStats.map(stat => (
+                    <TableRow key={stat.exerciseName} hover>
+                      <TableCell className="!font-semibold">{stat.exerciseName}</TableCell>
+                      <TableCell>
+                        <span className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-text-secondary">
+                          {stat.muscleGroup}
+                        </span>
+                      </TableCell>
+                      <TableCell align="center" className="!font-mono">
+                        <WeightDisplay weight={stat.bestSet.weight} /> x {stat.bestSet.reps}
+                      </TableCell>
+                      <TableCell align="center" className="!font-mono !font-semibold">
+                        <WeightDisplay weight={stat.bestSet.oneRM} />
+                      </TableCell>
+                      <TableCell align="center" className="!font-mono">
+                        <WeightDisplay weight={Math.round(stat.totalVolume)} />
+                      </TableCell>
+                      <TableCell align="center" className="!font-mono">
+                        {stat.totalSets}
+                      </TableCell>
+                      <TableCell align="center">
+                        <span className={`font-mono font-semibold ${progressionClass(stat.progression)}`}>
+                          {stat.progression > 0 ? '+' : ''}
+                          {stat.progression.toFixed(1)}%
+                        </span>
+                      </TableCell>
+                      <TableCell align="center" className="!text-text-tertiary">
+                        {formatDate(stat.lastPerformed)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Card>
+      </div>
+    </div>
   );
 }

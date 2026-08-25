@@ -176,33 +176,33 @@ export class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.resolveBaseURL()}${endpoint}`;
-
-    // Debug logging - ALWAYS log to catch the issue
-    console.log('🔍 API Request Debug:', {
-      endpoint,
-      baseURL: this.baseURL,
-      finalURL: url,
-    });
-
-    // Add authorization header if token exists
-    const accessToken = TokenManager.getAccessToken();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...((options.headers as Record<string, string>) || {}),
-    };
-
-    if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
-      console.log('🔐 Adding auth header:', {
-        hasToken: true,
-        tokenPreview: accessToken.substring(0, 20) + '...',
-      });
-    } else {
-      console.log('🔐 No access token available for request');
-    }
-
     try {
+      const url = `${this.resolveBaseURL()}${endpoint}`;
+
+      // Debug logging - ALWAYS log to catch the issue
+      console.log('🔍 API Request Debug:', {
+        endpoint,
+        baseURL: this.baseURL,
+        finalURL: url,
+      });
+
+      // Add authorization header if token exists
+      const accessToken = TokenManager.getAccessToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...((options.headers as Record<string, string>) || {}),
+      };
+
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+        console.log('🔐 Adding auth header:', {
+          hasToken: true,
+          tokenPreview: accessToken.substring(0, 20) + '...',
+        });
+      } else {
+        console.log('🔐 No access token available for request');
+      }
+
       const response = await fetch(url, {
         ...options,
         headers,

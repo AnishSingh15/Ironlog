@@ -2,11 +2,20 @@
 
 import { AppHeader } from '@/components/AppHeader';
 import { RestTimer } from '@/components/RestTimer';
+import { SetCompleteCelebration } from '@/components/SetCompleteCelebration';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/Dialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Metric } from '@/components/ui/Metric';
+import { toast } from '@/components/ui/Toast';
 import { useWeightUnit } from '@/contexts/WeightUnitContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useTimer } from '@/hooks/useTimer';
@@ -23,18 +32,7 @@ import {
   PlayArrow as PlayIcon,
   Timer as TimerIcon,
 } from '@mui/icons-material';
-import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
-  Alert,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Fab,
-  TextField,
-} from '@mui/material';
+import { Accordion, AccordionDetails, AccordionSummary, Fab, TextField } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -73,7 +71,6 @@ export default function DashboardPage() {
 
   const [setInputs, setSetInputs] = useState<Record<string, SetInputs>>({});
   const [expandedExercise, setExpandedExercise] = useState<string | false>(false);
-  const [error, setError] = useState<string | null>(null);
   const [isRestDay, setIsRestDay] = useState(false);
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
   const [availableExercises, setAvailableExercises] = useState<Record<string, any[]>>({});
@@ -84,6 +81,9 @@ export default function DashboardPage() {
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [restTimerFor, setRestTimerFor] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [celebration, setCelebration] = useState<{ show: boolean; weightDeltaKg?: number }>({
+    show: false,
+  });
 
   const { useMetricSystem, formatWeightDisplay, getWeightUnit } = useWeightUnit();
 
@@ -104,7 +104,6 @@ export default function DashboardPage() {
   const loadTodaysWorkout = async () => {
     try {
       setWorkoutLoading(true);
-      setError(null);
       setIsRestDay(false);
 
       const response = await api.get('/workouts/today');
@@ -153,7 +152,7 @@ export default function DashboardPage() {
         setSetInputs({});
       } else {
         console.error("Failed to load today's workout:", error);
-        setError("Failed to load today's workout. Please try again.");
+        toast.error("Failed to load today's workout. Please try again.");
       }
     } finally {
       setWorkoutLoading(false);
@@ -169,7 +168,6 @@ export default function DashboardPage() {
 
     try {
       setWorkoutLoading(true);
-      setError(null);
       setShowDeleteDialog(false);
 
       const response = await api.delete(`/workouts/${currentWorkout.id}`);
@@ -182,11 +180,11 @@ export default function DashboardPage() {
         setSetInputs({});
         setExpandedExercise(false);
       } else {
-        setError('Failed to delete workout. Please try again.');
+        toast.error('Failed to delete workout. Please try again.');
       }
     } catch (error: any) {
       console.error('Failed to delete workout:', error);
-      setError('Failed to delete workout. Please try again.');
+      toast.error('Failed to delete workout. Please try again.');
     } finally {
       setWorkoutLoading(false);
     }
@@ -210,12 +208,12 @@ export default function DashboardPage() {
         }
       } else {
         console.error('Failed to load exercises - invalid response:', response);
-        setError(`Failed to load exercises: ${response.error?.message || 'Unknown error'}`);
+        toast.error(`Failed to load exercises: ${response.error?.message || 'Unknown error'}`);
         setAvailableExercises({});
       }
     } catch (error) {
       console.error('Failed to load exercises:', error);
-      setError('Failed to load exercises. Please try again.');
+      toast.error('Failed to load exercises. Please try again.');
       setAvailableExercises({});
     } finally {
       setIsLoadingExercises(false);
@@ -225,12 +223,11 @@ export default function DashboardPage() {
   const createCustomWorkout = async () => {
     try {
       if (selectedExercises.length === 0) {
-        setError('Please select at least one exercise.');
+        toast.error('Please select at least one exercise.');
         return;
       }
 
       setIsStartingWorkout(true);
-      setError(null);
 
       const response = await api.post('/workouts/custom', {
         exerciseIds: selectedExercises,
@@ -262,7 +259,7 @@ export default function DashboardPage() {
       setCustomSets({});
     } catch (error: any) {
       console.error('Failed to create custom workout:', error);
-      setError('Failed to create workout. Please try again.');
+      toast.error('Failed to create workout. Please try again.');
     } finally {
       setIsStartingWorkout(false);
     }
@@ -289,7 +286,7 @@ export default function DashboardPage() {
     try {
       const inputs = setInputs[setId];
       if (!inputs || inputs.weight === '' || inputs.reps === '') {
-        setError('Please enter both weight and reps values.');
+        toast.error('Please enter both weight and reps values.');
         return;
       }
 
@@ -297,21 +294,20 @@ export default function DashboardPage() {
       const repsValue = parseInt(inputs.reps);
 
       if (isNaN(weightValue) || isNaN(repsValue)) {
-        setError('Please enter valid numbers for weight and reps.');
+        toast.error('Please enter valid numbers for weight and reps.');
         return;
       }
 
       if (weightValue < 0) {
-        setError('Weight cannot be negative. Use 0 for bodyweight exercises.');
+        toast.error('Weight cannot be negative. Use 0 for bodyweight exercises.');
         return;
       }
 
       if (repsValue <= 0) {
-        setError('Reps must be a positive number.');
+        toast.error('Reps must be a positive number.');
         return;
       }
 
-      setError(null);
 
       await api.patch(`/set-records/${setId}`, {
         actualWeight: weightValue,
@@ -328,6 +324,12 @@ export default function DashboardPage() {
         };
         updateSetRecord(updatedSetRecord);
         markSetCompleted(currentSetRecord.exerciseId, currentSetRecord.setIndex);
+
+        const weightDeltaKg = currentSetRecord.plannedWeight
+          ? Math.round((weightValue - currentSetRecord.plannedWeight) * 10) / 10
+          : undefined;
+        setCelebration({ show: true, weightDeltaKg });
+        setTimeout(() => setCelebration({ show: false }), 1400);
       }
 
       setSetInputs(prev => {
@@ -355,7 +357,7 @@ export default function DashboardPage() {
       }
     } catch (error: any) {
       console.error('Failed to update set:', error);
-      setError('Failed to update set. Please try again.');
+      toast.error('Failed to update set. Please try again.');
     }
   };
 
@@ -364,11 +366,10 @@ export default function DashboardPage() {
 
     try {
       await api.patch(`/workouts/${currentWorkout.id}/complete`);
-      setError(null);
       loadTodaysWorkout();
     } catch (error: any) {
       console.error('Failed to complete workout:', error);
-      setError('Failed to complete workout. Please try again.');
+      toast.error('Failed to complete workout. Please try again.');
     }
   };
 
@@ -376,7 +377,6 @@ export default function DashboardPage() {
     if (!currentWorkout || !currentWorkout.setRecords) return;
 
     try {
-      setError(null);
 
       const incompleteSets = currentWorkout.setRecords.filter(
         set => set.actualWeight === null || set.actualReps === null
@@ -408,7 +408,7 @@ export default function DashboardPage() {
       }, 1000);
     } catch (error: any) {
       console.error('Failed to mark all sets as done:', error);
-      setError('Failed to mark all sets as done. Please try again.');
+      toast.error('Failed to mark all sets as done. Please try again.');
     }
   };
 
@@ -506,9 +506,9 @@ export default function DashboardPage() {
 
           {currentWorkout.completed && (
             <div>
-              <Alert severity="success" className="!mb-3 !rounded-lg">
+              <div className="mb-3 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-sm font-medium text-success">
                 Workout completed. Great job.
-              </Alert>
+              </div>
               <Button
                 variant="secondary"
                 className="w-full"
@@ -673,12 +673,6 @@ export default function DashboardPage() {
       <AppHeader title="Workout" />
       <div className="min-h-screen bg-canvas pb-24 md:pb-6">
         <div className="mx-auto max-w-2xl px-4 py-5">
-          {error && (
-            <Alert severity="error" className="!mb-4 !rounded-lg" onClose={() => setError(null)}>
-              {error}
-            </Alert>
-          )}
-
           {workoutLoading ? (
             <Card className="py-12 text-center">
               <p className="text-sm text-text-secondary">Loading your workout...</p>
@@ -705,20 +699,15 @@ export default function DashboardPage() {
         </div>
 
         <AnimatePresence>{renderTimerFab()}</AnimatePresence>
+        <SetCompleteCelebration show={celebration.show} weightDeltaKg={celebration.weightDeltaKg} />
 
-        <Dialog
-          open={showWorkoutModal}
-          onClose={() => setShowWorkoutModal(false)}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>
-            <p className="text-lg font-semibold text-text-primary">Create your workout</p>
-            <p className="text-sm font-normal text-text-secondary">
-              Select exercises for today&apos;s session
-            </p>
-          </DialogTitle>
-          <DialogContent dividers>
+        <Dialog open={showWorkoutModal} onOpenChange={setShowWorkoutModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create your workout</DialogTitle>
+              <p className="text-sm text-text-secondary">Select exercises for today&apos;s session</p>
+            </DialogHeader>
+            <div className="max-h-[60vh] overflow-y-auto">
             {isLoadingExercises ? (
               <p className="py-8 text-center text-sm text-text-secondary">Loading exercises...</p>
             ) : (
@@ -779,14 +768,13 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
-          </DialogContent>
-          <DialogActions className="!flex-col !items-stretch !gap-2 !p-4">
-            {selectedExercises.length > 0 && (
-              <p className="text-center text-xs text-text-tertiary">
-                {selectedExercises.length} exercise{selectedExercises.length !== 1 ? 's' : ''} selected
-              </p>
-            )}
-            <div className="flex gap-2">
+            </div>
+            <DialogFooter className="flex-col items-stretch gap-2 sm:flex-row">
+              {selectedExercises.length > 0 && (
+                <p className="text-center text-xs text-text-tertiary sm:hidden">
+                  {selectedExercises.length} exercise{selectedExercises.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
               <Button
                 variant="secondary"
                 className="flex-1"
@@ -802,26 +790,28 @@ export default function DashboardPage() {
               >
                 {isStartingWorkout ? 'Creating...' : 'Start workout'}
               </Button>
-            </div>
-          </DialogActions>
+            </DialogFooter>
+          </DialogContent>
         </Dialog>
 
-        <Dialog open={showDeleteDialog} onClose={() => setShowDeleteDialog(false)}>
-          <DialogTitle>Delete workout?</DialogTitle>
+        <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
           <DialogContent>
-            <p className="text-sm text-text-secondary">
-              This can&apos;t be undone. You&apos;ll return to the choice between starting a new
-              workout or taking a rest day.
-            </p>
+            <DialogHeader>
+              <DialogTitle>Delete workout?</DialogTitle>
+              <p className="text-sm text-text-secondary">
+                This can&apos;t be undone. You&apos;ll return to the choice between starting a new
+                workout or taking a rest day.
+              </p>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setShowDeleteDialog(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" onClick={deleteWorkout}>
+                Delete workout
+              </Button>
+            </DialogFooter>
           </DialogContent>
-          <DialogActions>
-            <Button variant="ghost" onClick={() => setShowDeleteDialog(false)}>
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={deleteWorkout}>
-              Delete workout
-            </Button>
-          </DialogActions>
         </Dialog>
 
         {showRestTimer && (

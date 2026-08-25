@@ -1,10 +1,12 @@
 'use client';
 
-import { ThemeToggle } from '@/components/theme-toggle';
+import { ThemeToggleSwitch } from '@/components/ThemeToggleSwitch';
+import { toast } from '@/components/ui/Toast';
 import { useWeightUnit } from '@/contexts/WeightUnitContext';
 import { useAuthStore } from '@/store/auth';
-import { Scale as ScaleIcon } from '@mui/icons-material';
+import { NotificationsNone as BellIcon, Scale as ScaleIcon } from '@mui/icons-material';
 import { Avatar, IconButton, Menu, MenuItem, Toolbar } from '@mui/material';
+import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -31,14 +33,15 @@ export function AppHeader({ title, showWeightToggle = true }: AppHeaderProps) {
   };
 
   return (
-    <Toolbar
-      disableGutters
-      className="!min-h-14 border-b border-border-default px-4 md:px-6"
-    >
+    <Toolbar disableGutters className="!min-h-14 border-b border-border-default px-4 md:px-6">
       {title && <h1 className="flex-1 text-lg font-semibold text-text-primary">{title}</h1>}
       {!title && <div className="flex-1" />}
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
+        <span className="hidden rounded-full border border-border-default bg-surface-2 px-3 py-1 font-mono text-xs text-text-secondary sm:inline-block">
+          {format(new Date(), 'EEE, MMM d')}
+        </span>
+
         {showWeightToggle && (
           <IconButton
             onClick={toggleWeightUnit}
@@ -48,7 +51,17 @@ export function AppHeader({ title, showWeightToggle = true }: AppHeaderProps) {
             <ScaleIcon fontSize="small" className="text-text-secondary" />
           </IconButton>
         )}
-        <ThemeToggle />
+
+        <IconButton
+          size="small"
+          title="Notifications"
+          onClick={() => toast('No notifications yet')}
+        >
+          <BellIcon fontSize="small" className="text-text-secondary" />
+        </IconButton>
+
+        <ThemeToggleSwitch />
+
         <IconButton onClick={e => setProfileMenuAnchor(e.currentTarget)} size="small">
           <Avatar className="!h-8 !w-8 !bg-accent !text-accent-foreground !text-sm !font-semibold">
             {user?.email?.[0]?.toUpperCase() || 'U'}

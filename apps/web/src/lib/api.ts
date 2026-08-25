@@ -79,6 +79,23 @@ export interface FitnessStateSnapshot {
     sessionsPerWeek: number;
   };
   weeklyVolume: { weekStart: string; totalVolume: number; sessionCount: number }[];
+  muscleGroupVolume: { muscleGroup: string; totalVolume: number }[];
+  consistencyScore: number;
+  plateauAlert: { exercise: string; durationSessions: number; trend: 'flat' | 'upward' | 'downward' } | null;
+}
+
+export type WorkoutDayCalendarStatus = 'completed' | 'planned' | 'missed' | 'rest';
+
+export interface WeekCalendarDay {
+  date: string;
+  status: WorkoutDayCalendarStatus;
+}
+
+export interface PersonalRecord {
+  exercise: string;
+  weightKg: number;
+  reps: number;
+  achievedAt: string;
 }
 
 export interface KnowledgeMatch {
@@ -225,6 +242,10 @@ export class ApiClient {
       const response = await fetch(url, {
         ...options,
         headers,
+        // The refresh-token cookie is httpOnly and set by a different origin/port than the
+        // frontend in most deployments - without this, the browser never attaches it, and
+        // /auth/refresh (which checkAuth() calls on every hard page load) always 401s.
+        credentials: 'include',
       });
 
       // Handle 401 unauthorized - token might be expired
@@ -353,8 +374,26 @@ export class ApiClient {
     return this.post('/ai/analyze-workout');
   }
 
+  async getExerciseRecommendation(
+    exerciseName: string
+  ): Promise<ApiResponse<{ recommendation: ProgressionRecommendation }>> {
+    return this.get(`/ai/exercise-recommendation?exercise=${encodeURIComponent(exerciseName)}`);
+  }
+
   async getFitnessState(): Promise<ApiResponse<FitnessStateSnapshot>> {
     return this.get('/ai/fitness-state');
+  }
+
+  async getWeekCalendar(): Promise<ApiResponse<{ days: WeekCalendarDay[] }>> {
+    return this.get('/ai/week-calendar');
+  }
+
+  async forgotPassword(email: string): Promise<ApiResponse<{ message: string }>> {
+    return this.post('/auth/forgot-password', { email });
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<ApiResponse<{ message: string }>> {
+    return this.post('/auth/reset-password', { token, newPassword });
   }
 
   async searchKnowledge(query: string, limit = 3): Promise<ApiResponse<{ results: KnowledgeMatch[] }>> {

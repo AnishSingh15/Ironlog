@@ -1,4 +1,5 @@
 import { Exercise, PrismaClient } from '@prisma/client';
+import { analyticsService } from './analytics.service';
 
 const prisma = new PrismaClient();
 
@@ -241,8 +242,7 @@ export class WorkoutService {
       }
     }
 
-    // Personal records (simplified - just count completed workouts as PRs for now)
-    const personalRecords = totalWorkouts;
+    const personalRecords = await analyticsService.getPersonalRecords(userId);
 
     return {
       totalWorkouts,

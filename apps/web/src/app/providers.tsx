@@ -2,96 +2,55 @@
 
 import { AuthProvider } from '@/components/AuthProvider';
 import { ThemeProvider } from '@/components/theme-provider';
+import { TooltipProvider } from '@/components/ui/Tooltip';
 import { WeightUnitProvider } from '@/contexts/WeightUnitContext';
 import { CssBaseline } from '@mui/material';
 import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
 import { useTheme } from 'next-themes';
 import { ReactNode, useEffect, useState } from 'react';
 
-// IronLog design tokens - kept in sync with the CSS variables in globals.css and
-// documented in apps/web/DESIGN.md. One locked accent (Signal Blue); near-black /
-// near-white surfaces, never pure; a surface ladder instead of shadows on dark.
-const createAppTheme = (mode: 'light' | 'dark') => {
-  const tokens =
-    mode === 'light'
-      ? {
-          canvas: '#fafafa',
-          surface1: '#ffffff',
-          surface2: '#f2f2f3',
-          surface3: '#e9e9eb',
-          border: '#e4e4e7',
-          borderStrong: '#d4d4d8',
-          textPrimary: '#18181b',
-          textSecondary: '#52525b',
-          textTertiary: '#8a8a92',
-          accent: '#2F6FED',
-          accentForeground: '#ffffff',
-          success: '#1E9A5C',
-          warning: '#B4740B',
-          danger: '#C93B3F',
-        }
-      : {
-          canvas: '#0a0a0c',
-          surface1: '#131316',
-          surface2: '#1a1a1e',
-          surface3: '#212126',
-          border: '#2a2a30',
-          borderStrong: '#3a3a42',
-          textPrimary: '#f2f2f4',
-          textSecondary: '#a3a3ab',
-          textTertiary: '#6b6b74',
-          accent: '#5B8DFF',
-          accentForeground: '#0a0a0c',
-          success: '#3DD68C',
-          warning: '#E8A33D',
-          danger: '#E5484D',
-        };
+// Every color below is a raw `var(--il-*)` reference into globals.css, not a resolved
+// hex value - the browser re-resolves them automatically when next-themes toggles the
+// `.dark` class, so this theme can never drift out of sync with the Tailwind tokens.
+// See apps/web/DESIGN.md for the full token system.
+const tokens = {
+  canvas: 'hsl(var(--il-canvas))',
+  surface1: 'hsl(var(--il-surface-1))',
+  surface2: 'hsl(var(--il-surface-2))',
+  surface3: 'hsl(var(--il-surface-3))',
+  border: 'hsl(var(--il-border))',
+  borderStrong: 'hsl(var(--il-border-strong))',
+  textPrimary: 'hsl(var(--il-text-primary))',
+  textSecondary: 'hsl(var(--il-text-secondary))',
+  accent: 'hsl(var(--il-accent))',
+  accentForeground: 'hsl(var(--il-accent-foreground))',
+  success: 'hsl(var(--il-success))',
+  warning: 'hsl(var(--il-warning))',
+  danger: 'hsl(var(--il-danger))',
+};
 
-  return createTheme({
+const createAppTheme = (mode: 'light' | 'dark') =>
+  createTheme({
     palette: {
       mode,
-      primary: {
-        main: tokens.accent,
-        contrastText: tokens.accentForeground,
-      },
-      secondary: {
-        main: tokens.surface2,
-        contrastText: tokens.textPrimary,
-      },
-      success: {
-        main: tokens.success,
-        contrastText: tokens.accentForeground,
-      },
-      warning: {
-        main: tokens.warning,
-        contrastText: tokens.accentForeground,
-      },
-      error: {
-        main: tokens.danger,
-        contrastText: tokens.accentForeground,
-      },
-      background: {
-        default: tokens.canvas,
-        paper: tokens.surface1,
-      },
-      text: {
-        primary: tokens.textPrimary,
-        secondary: tokens.textSecondary,
-      },
+      primary: { main: tokens.accent, contrastText: tokens.accentForeground },
+      secondary: { main: tokens.surface2, contrastText: tokens.textPrimary },
+      success: { main: tokens.success, contrastText: tokens.accentForeground },
+      warning: { main: tokens.warning, contrastText: tokens.accentForeground },
+      error: { main: tokens.danger, contrastText: tokens.accentForeground },
+      background: { default: tokens.canvas, paper: tokens.surface1 },
+      text: { primary: tokens.textPrimary, secondary: tokens.textSecondary },
       divider: tokens.border,
-      action: {
-        hover: tokens.surface2,
-        selected: tokens.surface3,
-      },
+      action: { hover: tokens.surface2, selected: tokens.surface3 },
     },
     typography: {
-      fontFamily: 'var(--font-geist-sans), system-ui, sans-serif',
-      h1: { fontWeight: 600, fontSize: '2.5rem', lineHeight: 1.15, letterSpacing: '-0.01em' },
-      h2: { fontWeight: 600, fontSize: '2rem', lineHeight: 1.2, letterSpacing: '-0.01em' },
+      fontFamily: 'var(--font-manrope), system-ui, sans-serif',
+      h1: { fontWeight: 700, fontSize: '2.5rem', lineHeight: 1.15, letterSpacing: '-0.01em' },
+      h2: { fontWeight: 700, fontSize: '2rem', lineHeight: 1.2, letterSpacing: '-0.01em' },
       h3: { fontWeight: 600, fontSize: '1.5rem', lineHeight: 1.3 },
       h4: { fontWeight: 600, fontSize: '1.25rem', lineHeight: 1.35 },
-      h5: { fontWeight: 500, fontSize: '1.125rem', lineHeight: 1.4 },
-      h6: { fontWeight: 500, fontSize: '1rem', lineHeight: 1.4 },
+      h5: { fontWeight: 600, fontSize: '1.125rem', lineHeight: 1.4 },
+      h6: { fontWeight: 600, fontSize: '1rem', lineHeight: 1.4 },
       body1: { fontSize: '0.9375rem', lineHeight: 1.5 },
       body2: { fontSize: '0.8125rem', lineHeight: 1.5 },
     },
@@ -139,7 +98,7 @@ const createAppTheme = (mode: 'light' | 'dark') => {
           root: {
             borderRadius: '12px',
             border: `1px solid ${tokens.border}`,
-            boxShadow: mode === 'light' ? '0 1px 2px rgba(0,0,0,.04), 0 4px 12px rgba(0,0,0,.06)' : 'none',
+            boxShadow: 'var(--il-shadow-float)',
             backgroundImage: 'none',
             background: tokens.surface1,
           },
@@ -184,17 +143,18 @@ const createAppTheme = (mode: 'light' | 'dark') => {
       },
     },
   });
-};
 
 function MuiThemeWrapper({ children }: { children: ReactNode }) {
-  const { theme, resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Use light theme as fallback during initial server render to prevent hydration mismatch
+  // Use light theme as fallback during initial server render to prevent hydration mismatch.
+  // The palette values themselves are var() references, so only `mode` (which drives MUI's
+  // own internal light/dark defaults) needs to track the resolved theme.
   const currentTheme = mounted ? (resolvedTheme === 'dark' ? 'dark' : 'light') : 'light';
   const muiTheme = createAppTheme(currentTheme);
 
@@ -215,7 +175,9 @@ export function Providers({ children }: ProvidersProps) {
     <WeightUnitProvider>
       <ThemeProvider>
         <MuiThemeWrapper>
-          <AuthProvider>{children}</AuthProvider>
+          <TooltipProvider delayDuration={200}>
+            <AuthProvider>{children}</AuthProvider>
+          </TooltipProvider>
         </MuiThemeWrapper>
       </ThemeProvider>
     </WeightUnitProvider>

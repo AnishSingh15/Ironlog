@@ -5,15 +5,17 @@ import { PWANotifications } from '@/components/PWANotifications';
 import { PWAOfflineIndicator } from '@/components/PWAOfflineIndicator';
 import { PWAStatusChecker } from '@/components/PWAStatusChecker';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
+import { Toaster } from '@/components/ui/Toast';
 // import { Analytics } from '@vercel/analytics/next';
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist_Mono, Manrope } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-const geistSans = Geist({
+const manrope = Manrope({
   subsets: ['latin'],
-  variable: '--font-geist-sans',
+  variable: '--font-manrope',
+  weight: ['400', '500', '600', '700'],
 });
 
 const geistMono = Geist_Mono({
@@ -27,7 +29,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#0a0a0c',
+  themeColor: '#0e0e10',
 };
 
 export const metadata: Metadata = {
@@ -48,7 +50,7 @@ export const metadata: Metadata = {
       { url: '/icon-192x192.svg', sizes: '192x192', type: 'image/svg+xml' },
       { url: '/icon-512x512.svg', sizes: '512x512', type: 'image/svg+xml' },
     ],
-    apple: '/icon-192x192.svg',
+    apple: '/icons/apple-touch-icon.png',
   },
   formatDetection: {
     telephone: false,
@@ -81,12 +83,13 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${manrope.variable} ${geistMono.variable} font-sans antialiased`}
         suppressHydrationWarning
       >
         <Providers>
           <AppShell>{children}</AppShell>
           <BottomNav />
+          <Toaster />
           <ServiceWorkerRegistration />
           <PWAInstallPrompt />
           <PWANotifications />

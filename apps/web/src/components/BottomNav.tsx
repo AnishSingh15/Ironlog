@@ -1,5 +1,6 @@
 'use client';
 
+import { navIndicatorTransition } from '@/lib/motion';
 import { useAuthStore } from '@/store/auth';
 import { clsx } from 'clsx';
 import {
@@ -9,6 +10,7 @@ import {
   Home as HomeIcon,
   TrendingUp as ProgressIcon,
 } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import { usePathname, useRouter } from 'next/navigation';
 
 // Mobile nav caps at 5 items (see DESIGN.md Section 7). Settings isn't a dedicated tab
@@ -46,12 +48,16 @@ export function BottomNav() {
               type="button"
               onClick={() => router.push(item.path)}
               data-testid={`${item.label.toLowerCase().replace(' ', '-')}-nav`}
-              className="flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1"
+              className="relative flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-1"
             >
-              <Icon
-                fontSize="small"
-                className={active ? 'text-accent' : 'text-text-tertiary'}
-              />
+              {active && (
+                <motion.span
+                  layoutId="bottom-nav-indicator"
+                  transition={navIndicatorTransition}
+                  className="absolute top-1 h-0.5 w-6 rounded-full bg-accent"
+                />
+              )}
+              <Icon fontSize="small" className={active ? 'text-accent' : 'text-text-tertiary'} />
               <span
                 className={clsx(
                   'text-[11px] font-medium',

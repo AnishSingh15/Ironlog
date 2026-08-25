@@ -63,7 +63,7 @@ interface WorkoutStats {
   totalWorkouts: number;
   currentStreak: number;
   totalSetsCompleted: number;
-  personalRecords: number;
+  personalRecords: Array<{ exercise: string; weightKg: number; reps: number; achievedAt: string }>;
   recentActivity: Array<{ date: string; completed: boolean }>;
 }
 
@@ -145,7 +145,7 @@ export default function HistoryPage() {
       { title: 'Total workouts', value: stats.totalWorkouts, icon: FitnessCenterIcon },
       { title: 'Current streak', value: `${stats.currentStreak}d`, icon: FireIcon },
       { title: 'Sets completed', value: stats.totalSetsCompleted, icon: TrendingUpIcon },
-      { title: 'Personal records', value: stats.personalRecords, icon: TimelineIcon },
+      { title: 'Personal records', value: stats.personalRecords.length, icon: TimelineIcon },
     ];
 
     return (

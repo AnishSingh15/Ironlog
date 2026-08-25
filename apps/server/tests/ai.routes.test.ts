@@ -42,6 +42,14 @@ vi.mock('../src/services/analytics.service', () => ({
   analyticsService: {
     getTrainingFrequency: vi.fn(async () => ({ totalSessions: 4, weeksSpanned: 4, sessionsPerWeek: 1 })),
     getWeeklyVolume: vi.fn(async () => [{ weekStart: new Date(), totalVolume: 1000, sessionCount: 1 }]),
+    getMuscleGroupVolume: vi.fn(async () => [{ muscleGroup: 'Chest', totalVolume: 1000 }]),
+    getConsistency: vi.fn(async () => 75),
+    getWeekCalendar: vi.fn(async () => [{ date: new Date(), status: 'completed' }]),
+    getTopPlateauAlert: vi.fn(async () => null),
+    getExerciseHistory: vi.fn(async () => [
+      { date: new Date('2026-08-01'), actualWeight: 60, actualReps: 8, plannedWeight: 60, plannedReps: 8, setIndex: 0 },
+      { date: new Date('2026-08-08'), actualWeight: 62.5, actualReps: 8, plannedWeight: 62.5, plannedReps: 8, setIndex: 0 },
+    ]),
   },
 }));
 
@@ -126,6 +134,33 @@ describe('AI routes', () => {
 
     expect(response.body.success).toBe(true);
     expect(response.body.data.results[0].source).toBe('progressive-overload.md');
+  });
+
+  it('returns a deterministic exercise recommendation with no LLM call', async () => {
+    await prisma.exercise.upsert({
+      where: { name: 'Bench Press' },
+      update: {},
+      create: { name: 'Bench Press', muscleGroup: 'Chest', defaultSets: 3, defaultReps: 8 },
+    });
+
+    const { default: app } = await import('../src/index');
+    const response = await request(app)
+      .get('/api/v1/ai/exercise-recommendation')
+      .query({ exercise: 'Bench Press' })
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.recommendation.action).toBeDefined();
+    expect(response.body.data.recommendation.evidence).toBeDefined();
+  });
+
+  it('rejects exercise-recommendation with a missing exercise param', async () => {
+    const { default: app } = await import('../src/index');
+    await request(app)
+      .get('/api/v1/ai/exercise-recommendation')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(400);
   });
 
   it('rejects knowledge-search with a missing query', async () => {

@@ -1,3 +1,4 @@
+import { PrismaClient } from '@prisma/client';
 import { Response, Router } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
@@ -14,8 +15,10 @@ import { searchKnowledge } from '../ai/rag/retrieval';
 import { workoutAnalysisSchema } from '../ai/schemas/workoutAnalysis';
 import { planWeekRequestSchema, weeklyPlanSchema } from '../ai/schemas/weeklyPlan';
 import { analyticsService } from '../services/analytics.service';
+import { calculateProgress } from '../services/progression';
 
 const router = Router();
+const prisma = new PrismaClient();
 router.use(authenticate);
 
 const coachTools = [...analyticsTools, ...progressionTools, ...plateauTools, ...knowledgeTools];
@@ -94,14 +97,59 @@ router.get('/fitness-state', async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
 
   try {
-    const [trainingFrequency, weeklyVolume] = await Promise.all([
-      analyticsService.getTrainingFrequency(userId, 8),
-      analyticsService.getWeeklyVolume(userId, 8),
-    ]);
+    const [trainingFrequency, weeklyVolume, muscleGroupVolume, consistencyScore, plateauAlert] =
+      await Promise.all([
+        analyticsService.getTrainingFrequency(userId, 8),
+        analyticsService.getWeeklyVolume(userId, 8),
+        analyticsService.getMuscleGroupVolume(userId, 8),
+        analyticsService.getConsistency(userId, 8),
+        analyticsService.getTopPlateauAlert(userId),
+      ]);
 
-    return res.json({ success: true, data: { trainingFrequency, weeklyVolume } });
+    return res.json({
+      success: true,
+      data: { trainingFrequency, weeklyVolume, muscleGroupVolume, consistencyScore, plateauAlert },
+    });
   } catch (error) {
     console.error('Fitness state error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+});
+
+router.get('/week-calendar', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+
+  try {
+    const days = await analyticsService.getWeekCalendar(userId);
+    return res.json({ success: true, data: { days } });
+  } catch (error) {
+    console.error('Week calendar error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+});
+
+// Deterministic, no LLM call - safe to fetch inline while logging a set or viewing an
+// exercise's detail page. Powers the "Keep Weight" / "Adapt" suggestion in the workout flow.
+router.get('/exercise-recommendation', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const exerciseName = req.query.exercise as string | undefined;
+
+  if (!exerciseName) {
+    return res.status(400).json({ success: false, error: { message: 'exercise query param is required' } });
+  }
+
+  try {
+    const exercise = await prisma.exercise.findUnique({ where: { name: exerciseName } });
+    if (!exercise) {
+      return res.status(404).json({ success: false, error: { message: 'Exercise not found' } });
+    }
+
+    const history = await analyticsService.getExerciseHistory(userId, exerciseName, 20);
+    const recommendation = calculateProgress(history, exercise.defaultReps, exercise.muscleGroup);
+
+    return res.json({ success: true, data: { recommendation } });
+  } catch (error) {
+    console.error('Exercise recommendation error:', error);
     return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
 });

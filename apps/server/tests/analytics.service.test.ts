@@ -99,4 +99,94 @@ describe('analyticsService', () => {
     expect(performance[0]?.actualWeight).toBe(62.5);
     expect(performance[1]?.actualWeight).toBe(65);
   });
+
+  it('getMuscleGroupVolume sums volume grouped by exercise muscle group', async () => {
+    const { user } = await seedUserWithSets();
+    const volume = await analyticsService.getMuscleGroupVolume(user.id, 8);
+    expect(volume).toEqual([
+      { muscleGroup: 'Chest', totalVolume: 60 * 8 + 62.5 * 8 + 65 * 8 },
+    ]);
+  });
+
+  it('getPersonalRecords returns the best set (highest weight) per exercise', async () => {
+    const { user } = await seedUserWithSets();
+    const records = await analyticsService.getPersonalRecords(user.id);
+    expect(records).toHaveLength(1);
+    expect(records[0]).toMatchObject({ exercise: 'Bench Press', weightKg: 65, reps: 8 });
+  });
+
+  it('getConsistency is 100% when every logged non-rest day was completed', async () => {
+    const { user } = await seedUserWithSets();
+    const consistency = await analyticsService.getConsistency(user.id, 8);
+    expect(consistency).toBe(100);
+  });
+
+  it('getConsistency returns 0 when there are no logged workout days', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'No Workouts', email: `no-workouts-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+    const consistency = await analyticsService.getConsistency(user.id, 8);
+    expect(consistency).toBe(0);
+  });
+
+  it('getTopPlateauAlert finds a plateaued exercise from real history', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Plateau User', email: `plateau-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+    const exercise = await prisma.exercise.upsert({
+      where: { name: 'Squat' },
+      update: {},
+      create: { name: 'Squat', muscleGroup: 'Legs', defaultSets: 3, defaultReps: 8 },
+    });
+
+    // Four sessions at the same weight, never hitting the target reps - a plateau.
+    for (let i = 0; i < 4; i++) {
+      const day = await prisma.workoutDay.create({
+        data: {
+          userId: user.id,
+          date: new Date(Date.UTC(2026, 6, 1 + i * 3)),
+          completed: true,
+        },
+      });
+      await prisma.setRecord.create({
+        data: {
+          workoutDayId: day.id,
+          exerciseId: exercise.id,
+          setIndex: 1,
+          actualWeight: 100,
+          actualReps: 5,
+        },
+      });
+    }
+
+    const alert = await analyticsService.getTopPlateauAlert(user.id);
+    expect(alert).toMatchObject({ exercise: 'Squat', trend: 'flat' });
+  });
+
+  it('getTopPlateauAlert returns null when nothing has plateaued', async () => {
+    const { user } = await seedUserWithSets();
+    const alert = await analyticsService.getTopPlateauAlert(user.id);
+    expect(alert).toBeNull();
+  });
+
+  it('getWeekCalendar returns 7 days with completed/rest statuses from real rows', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Calendar User', email: `cal-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+
+    const now = new Date();
+    const weekStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const isoDay = weekStart.getUTCDay() || 7;
+    if (isoDay !== 1) weekStart.setUTCDate(weekStart.getUTCDate() - (isoDay - 1));
+
+    await prisma.workoutDay.create({ data: { userId: user.id, date: weekStart, completed: true } });
+    const tuesday = new Date(weekStart);
+    tuesday.setUTCDate(tuesday.getUTCDate() + 1);
+    await prisma.workoutDay.create({ data: { userId: user.id, date: tuesday, isRestDay: true } });
+
+    const days = await analyticsService.getWeekCalendar(user.id, weekStart);
+    expect(days).toHaveLength(7);
+    expect(days[0]?.status).toBe('completed');
+    expect(days[1]?.status).toBe('rest');
+  });
 });

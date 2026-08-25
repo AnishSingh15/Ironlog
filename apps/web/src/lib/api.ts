@@ -98,6 +98,23 @@ export interface PersonalRecord {
   achievedAt: string;
 }
 
+export interface PerformedSet {
+  date: string;
+  actualWeight: number;
+  actualReps: number;
+  plannedWeight: number | null;
+  plannedReps: number | null;
+  setIndex: number;
+}
+
+export interface ExerciseDetail {
+  exercise: { id: string; name: string; muscleGroup: string; defaultSets: number; defaultReps: number };
+  history: PerformedSet[];
+  personalBest: PerformedSet | null;
+  recommendation: ProgressionRecommendation | null;
+  plateau: { status: 'plateau' | 'progressing' | 'insufficient_data'; confidence: number; durationSessions: number; trend: 'flat' | 'upward' | 'downward' } | null;
+}
+
 export interface KnowledgeMatch {
   id: string;
   source: string;
@@ -425,7 +442,7 @@ export class ApiClient {
     return this.get(`/exercises/popular?limit=${limit}`);
   }
 
-  async getExercise(id: string): Promise<ApiResponse<any>> {
+  async getExercise(id: string): Promise<ApiResponse<ExerciseDetail>> {
     return this.get(`/exercises/${id}`);
   }
 

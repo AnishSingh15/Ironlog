@@ -256,7 +256,11 @@ export default function ExercisesPage() {
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
                   {groupExercises.map(exercise => (
-                    <IlCard key={exercise.id} className="flex flex-col justify-between">
+                    <IlCard
+                      key={exercise.id}
+                      className="flex cursor-pointer flex-col justify-between transition-colors hover:bg-surface-2"
+                      onClick={() => router.push(`/exercises/${exercise.id}`)}
+                    >
                       <div>
                         <p className="text-sm font-semibold text-text-primary">{exercise.name}</p>
                         <Badge className="mt-1.5">{exercise.muscleGroup}</Badge>
@@ -264,7 +268,7 @@ export default function ExercisesPage() {
                           Default: {exercise.defaultSets} sets x {exercise.defaultReps} reps
                         </p>
                       </div>
-                      <div className="mt-3 flex justify-end gap-1">
+                      <div className="mt-3 flex justify-end gap-1" onClick={e => e.stopPropagation()}>
                         <IconButton size="small" onClick={() => handleOpenDialog(exercise)}>
                           <EditIcon fontSize="small" className="text-text-secondary" />
                         </IconButton>

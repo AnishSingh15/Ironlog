@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Metric } from '@/components/ui/Metric';
 import { Skeleton as IlSkeleton } from '@/components/ui/Skeleton';
+import { toast } from '@/components/ui/Toast';
 import { WeightDisplay } from '@/components/WeightComponents';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
@@ -19,7 +20,7 @@ import {
   Timeline as TimelineIcon,
   TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
-import { Alert, IconButton, Tooltip } from '@mui/material';
+import { IconButton, Tooltip } from '@mui/material';
 import {
   addMonths,
   eachDayOfInterval,
@@ -74,7 +75,6 @@ export default function HistoryPage() {
   const [stats, setStats] = useState<WorkoutStats | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedDay, setSelectedDay] = useState<WorkoutDay | null>(null);
 
   useEffect(() => {
@@ -90,7 +90,6 @@ export default function HistoryPage() {
   const loadWorkoutHistory = async () => {
     try {
       setIsLoading(true);
-      setError(null);
 
       const startDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
       const endDate = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
@@ -99,7 +98,7 @@ export default function HistoryPage() {
       setWorkoutDays((response.data as any)?.data || response.data);
     } catch (error: any) {
       console.error('Failed to load workout history:', error);
-      setError('Failed to load workout history. Please try again.');
+      toast.error('Failed to load workout history. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -116,6 +115,10 @@ export default function HistoryPage() {
 
   const getWorkoutForDate = (date: Date): WorkoutDay | undefined => {
     return workoutDays.find(workout => isSameDay(new Date(workout.date), date));
+  };
+
+  const getPrOnDate = (date: Date) => {
+    return stats?.personalRecords.find(pr => isSameDay(new Date(pr.achievedAt), date));
   };
 
   // Intensity scale uses the one locked accent at increasing opacity, not a separate
@@ -201,24 +204,30 @@ export default function HistoryPage() {
 
             const workout = getWorkoutForDate(date);
             const isCurrentDay = isToday(date);
+            const pr = getPrOnDate(date);
 
             return (
               <Tooltip
                 key={date.toISOString()}
                 arrow
                 title={
-                  workout
-                    ? `${format(date, 'MMM dd')}: ${workout.splitName} (${workout.completionPercentage}% complete)`
-                    : `${format(date, 'MMM dd')}: No workout`
+                  pr
+                    ? `${format(date, 'MMM dd')}: PR - ${pr.exercise} ${pr.weightKg}kg x ${pr.reps}`
+                    : workout
+                      ? `${format(date, 'MMM dd')}: ${workout.splitName} (${workout.completionPercentage}% complete)`
+                      : `${format(date, 'MMM dd')}: No workout`
                 }
               >
                 <button
                   onClick={() => handleDayClick(date)}
-                  className={`flex h-10 items-center justify-center rounded-md text-sm transition-transform hover:scale-105 ${getIntensityClass(workout)} ${
+                  className={`relative flex h-10 items-center justify-center rounded-md text-sm transition-transform hover:scale-105 ${getIntensityClass(workout)} ${
                     isCurrentDay ? 'ring-2 ring-accent' : ''
                   } ${workout && workout.completionPercentage > 50 ? 'text-white' : 'text-text-primary'}`}
                 >
                   {format(date, 'd')}
+                  {pr && (
+                    <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-warning" />
+                  )}
                 </button>
               </Tooltip>
             );
@@ -309,12 +318,6 @@ export default function HistoryPage() {
       <AppHeader title="History" />
 
       <div className="mx-auto max-w-4xl px-4 py-5 pb-24 md:pb-6">
-        {error && (
-          <Alert severity="error" className="!mb-4 !rounded-lg">
-            {error}
-          </Alert>
-        )}
-
         {isLoading ? (
           <div>
             <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">

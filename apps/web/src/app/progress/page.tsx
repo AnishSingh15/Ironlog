@@ -1,26 +1,23 @@
 'use client';
 
 import { AppHeader } from '@/components/AppHeader';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton as IlSkeleton } from '@/components/ui/Skeleton';
+import { toast } from '@/components/ui/Toast';
 import { WeightDisplay } from '@/components/WeightComponents';
 import { useWeightUnit } from '@/contexts/WeightUnitContext';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
-import { BarChart as BarChartIcon, FilterList as FilterIcon, Sort as SortIcon } from '@mui/icons-material';
 import {
-  Alert,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-} from '@mui/material';
+  AutoAwesome as AICoachIcon,
+  BarChart as BarChartIcon,
+  FilterList as FilterIcon,
+  Sort as SortIcon,
+} from '@mui/icons-material';
+import { FormControl, InputLabel, MenuItem, Select } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
@@ -35,8 +32,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
+
+// The accent + a desaturated neutral ladder, matching the v2 Iron Red token system -
+// no rainbow, no leftover Signal Blue hex from v1. See DESIGN.md Section 3/8.
+const chartColors = ['#f0453f', '#8a8a92', '#f4756f', '#c4c4ca', '#3a3a42'];
 
 interface SetRecord {
   id: string;
@@ -73,10 +72,6 @@ interface VolumeData {
   sets: number;
 }
 
-// Desaturated categorical palette (accent + neutrals) for the muscle-group pie chart -
-// no rainbow, no reused old-palette hues. See DESIGN.md Section 8.
-const chartColors = ['#2F6FED', '#8a8a92', '#5B8DFF', '#c4c4ca', '#3a3a42'];
-
 export default function ProgressPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
@@ -85,7 +80,6 @@ export default function ProgressPage() {
   const [exerciseStats, setExerciseStats] = useState<ExerciseStats[]>([]);
   const [volumeData, setVolumeData] = useState<VolumeData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const [muscleGroupFilter, setMuscleGroupFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'oneRM' | 'volume' | 'lastPerformed'>('oneRM');
@@ -105,7 +99,6 @@ export default function ProgressPage() {
   const loadProgressData = async () => {
     try {
       setIsLoading(true);
-      setError(null);
 
       const response = await api.get('/set-records');
       const responseData = response.data as any;
@@ -117,7 +110,7 @@ export default function ProgressPage() {
       calculateVolumeData(records);
     } catch (error: any) {
       console.error('Failed to load progress data:', error);
-      setError('Failed to load progress data. Please try again.');
+      toast.error('Failed to load progress data. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -232,6 +225,13 @@ export default function ProgressPage() {
       return sortOrder === 'desc' ? bValue - aValue : aValue - bValue;
     });
 
+  const topByOneRM = exerciseStats.length
+    ? [...exerciseStats].sort((a, b) => b.bestSet.oneRM - a.bestSet.oneRM)[0]
+    : null;
+  const biggestMover = exerciseStats.length
+    ? [...exerciseStats].sort((a, b) => b.progression - a.progression)[0]
+    : null;
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -255,10 +255,50 @@ export default function ProgressPage() {
       <AppHeader title="Progress" />
 
       <div className="mx-auto max-w-5xl px-4 py-5 pb-24 md:pb-6">
-        {error && (
-          <Alert severity="error" className="!mb-4 !rounded-lg">
-            {error}
-          </Alert>
+        {!isLoading && topByOneRM && (
+          <div className="mb-4 grid gap-4 md:grid-cols-2">
+            <Card padding="lg">
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                Current Best
+              </p>
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono text-4xl font-bold text-text-primary">
+                  <WeightDisplay weight={topByOneRM.bestSet.oneRM} />
+                </span>
+                <span className="text-sm text-text-secondary">{topByOneRM.exerciseName} est. 1RM</span>
+              </div>
+              {topByOneRM.progression !== 0 && (
+                <p className={`mt-1 font-mono text-sm font-semibold ${progressionClass(topByOneRM.progression)}`}>
+                  {topByOneRM.progression > 0 ? '+' : ''}
+                  {topByOneRM.progression.toFixed(1)}% this window
+                </p>
+              )}
+            </Card>
+
+            <Card padding="lg" className="border-l-2 border-l-accent">
+              <div className="mb-1 flex items-center gap-2">
+                <AICoachIcon className="text-accent" fontSize="small" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                  AI Analysis
+                </p>
+              </div>
+              {biggestMover && biggestMover.progression > 0 ? (
+                <p className="text-sm text-text-secondary">
+                  Your <span className="font-semibold text-text-primary">{biggestMover.exerciseName}</span>{' '}
+                  has improved the most this window: an estimated{' '}
+                  <span className="font-mono font-semibold text-success">
+                    +{biggestMover.progression.toFixed(1)}%
+                  </span>{' '}
+                  in 1-rep max.
+                </p>
+              ) : (
+                <p className="text-sm text-text-secondary">
+                  Not enough repeated sessions per exercise yet to detect a trend. Keep logging to
+                  unlock this.
+                </p>
+              )}
+            </Card>
+          </div>
         )}
 
         <Card className="mb-4">
@@ -318,7 +358,7 @@ export default function ProgressPage() {
                       name === 'volume' ? 'Total volume' : 'Total sets',
                     ]}
                   />
-                  <Bar dataKey="volume" fill="#2F6FED" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="volume" fill="#f0453f" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </Card>
@@ -365,55 +405,42 @@ export default function ProgressPage() {
               description="Complete some workouts to see your progress stats."
             />
           ) : (
-            <TableContainer className="max-h-[600px]">
-              <Table stickyHeader size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Exercise</TableCell>
-                    <TableCell>Muscle group</TableCell>
-                    <TableCell align="center">Best set</TableCell>
-                    <TableCell align="center">1-rep max</TableCell>
-                    <TableCell align="center">Total volume</TableCell>
-                    <TableCell align="center">Sets</TableCell>
-                    <TableCell align="center">Progression</TableCell>
-                    <TableCell align="center">Last performed</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredAndSortedStats.map(stat => (
-                    <TableRow key={stat.exerciseName} hover>
-                      <TableCell className="!font-semibold">{stat.exerciseName}</TableCell>
-                      <TableCell>
-                        <span className="rounded-md bg-surface-2 px-2 py-0.5 text-xs text-text-secondary">
-                          {stat.muscleGroup}
-                        </span>
-                      </TableCell>
-                      <TableCell align="center" className="!font-mono">
-                        <WeightDisplay weight={stat.bestSet.weight} /> x {stat.bestSet.reps}
-                      </TableCell>
-                      <TableCell align="center" className="!font-mono !font-semibold">
+            <div className="flex flex-col divide-y divide-border-default">
+              {filteredAndSortedStats.map(stat => (
+                <div
+                  key={stat.exerciseName}
+                  className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-text-primary">{stat.exerciseName}</p>
+                      <Badge>{stat.muscleGroup}</Badge>
+                    </div>
+                    <p className="mt-0.5 font-mono text-xs text-text-tertiary">
+                      Best: <WeightDisplay weight={stat.bestSet.weight} /> x {stat.bestSet.reps} ·{' '}
+                      {stat.totalSets} sets · {formatDate(stat.lastPerformed)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4 sm:justify-end">
+                    <div className="text-right">
+                      <p className="font-mono text-lg font-bold text-text-primary">
                         <WeightDisplay weight={stat.bestSet.oneRM} />
-                      </TableCell>
-                      <TableCell align="center" className="!font-mono">
-                        <WeightDisplay weight={Math.round(stat.totalVolume)} />
-                      </TableCell>
-                      <TableCell align="center" className="!font-mono">
-                        {stat.totalSets}
-                      </TableCell>
-                      <TableCell align="center">
-                        <span className={`font-mono font-semibold ${progressionClass(stat.progression)}`}>
-                          {stat.progression > 0 ? '+' : ''}
-                          {stat.progression.toFixed(1)}%
-                        </span>
-                      </TableCell>
-                      <TableCell align="center" className="!text-text-tertiary">
-                        {formatDate(stat.lastPerformed)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                      </p>
+                      <p className="text-[11px] text-text-tertiary">est. 1RM</p>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-mono text-sm font-semibold ${progressionClass(stat.progression)}`}>
+                        {stat.progression > 0 ? '+' : ''}
+                        {stat.progression.toFixed(1)}%
+                      </p>
+                      <p className="text-[11px] text-text-tertiary">
+                        <WeightDisplay weight={Math.round(stat.totalVolume)} /> vol
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </Card>
       </div>

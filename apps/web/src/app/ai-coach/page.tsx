@@ -7,10 +7,21 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Metric } from '@/components/ui/Metric';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { toast } from '@/components/ui/Toast';
+import { insightAppear } from '@/lib/motion';
 import { api, ProgressionRecommendation, WorkoutAnalysis } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
-import { AutoAwesome, TrendingDown, TrendingFlat, TrendingUp } from '@mui/icons-material';
-import { Container } from '@mui/material';
+import {
+  Autorenew,
+  AutoAwesome,
+  CalendarMonth,
+  HelpOutline,
+  TrendingDown,
+  TrendingFlat,
+  TrendingUp,
+  Tune,
+} from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
 
@@ -107,10 +118,44 @@ export default function AICoachPage() {
     setState('error');
   };
 
+  const comingSoon = (feature: string) => () =>
+    toast(`${feature} isn't available yet - the backend doesn't support this action yet.`);
+
+  const actions = [
+    { label: 'Analyze My Progress', icon: AutoAwesome, onClick: runAnalysis },
+    { label: 'Plan My Week', icon: CalendarMonth, onClick: () => router.push('/plan') },
+    { label: 'Why Am I Stuck?', icon: HelpOutline, onClick: comingSoon('Why Am I Stuck?'), soon: true },
+    { label: 'Adapt Today’s Workout', icon: Tune, onClick: comingSoon('Adapt Today’s Workout'), soon: true },
+    { label: 'Review My Week', icon: Autorenew, onClick: comingSoon('Review My Week'), soon: true },
+  ];
+
   return (
     <div className="min-h-screen bg-canvas pb-20 md:pb-0">
       <AppHeader title="AI Coach" showWeightToggle={false} />
-      <Container maxWidth="sm" className="!px-4 !py-6">
+      <div className="mx-auto max-w-sm px-4 py-6">
+        <div className="mb-5">
+          <h1 className="text-lg font-semibold text-text-primary">AI Coach</h1>
+          <p className="text-sm text-text-secondary">Your training intelligence.</p>
+        </div>
+
+        <div className="mb-5 grid grid-cols-2 gap-2">
+          {actions.map(action => (
+            <button
+              key={action.label}
+              onClick={action.onClick}
+              className="relative flex flex-col items-start gap-2 rounded-lg border border-border-default bg-surface-1 p-3 text-left transition-colors hover:border-border-strong hover:bg-surface-2"
+            >
+              <action.icon fontSize="small" className="text-accent" />
+              <span className="text-xs font-semibold text-text-primary">{action.label}</span>
+              {action.soon && (
+                <Badge tone="neutral" className="absolute right-2 top-2 !text-[9px]">
+                  Soon
+                </Badge>
+              )}
+            </button>
+          ))}
+        </div>
+
         {state === 'idle' && (
           <Card className="flex flex-col items-center gap-4 py-10 text-center">
             <AutoAwesome className="text-accent" fontSize="large" />
@@ -150,7 +195,10 @@ export default function AICoachPage() {
         )}
 
         {state === 'ready' && analysis && (
-          <div className="animate-fade-in space-y-4">
+          <motion.div variants={insightAppear} initial="hidden" animate="visible" className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+              Recent Insights
+            </p>
             <Card>
               <div className="flex items-center gap-2">
                 {trendCopy[analysis.overallTrend].icon}
@@ -187,9 +235,9 @@ export default function AICoachPage() {
             <Button variant="secondary" onClick={runAnalysis} className="w-full">
               Re-analyze
             </Button>
-          </div>
+          </motion.div>
         )}
-      </Container>
+      </div>
     </div>
   );
 }

@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { checkmarkDraw } from '@/lib/motion';
 import { api, DayOfWeek, WeeklyPlan } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { AutoAwesome, CalendarMonth } from '@mui/icons-material';
 import { Container, TextField } from '@mui/material';
 import { clsx } from 'clsx';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -40,6 +42,7 @@ export default function PlanPage() {
     'Friday',
   ]);
   const [sessionDurationMinutes, setSessionDurationMinutes] = useState('60');
+  const [justGenerated, setJustGenerated] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -65,6 +68,8 @@ export default function PlanPage() {
     if (response.success && response.data) {
       setPlan(response.data.plan);
       setState('ready');
+      setJustGenerated(true);
+      setTimeout(() => setJustGenerated(false), 1800);
       return;
     }
 
@@ -167,6 +172,35 @@ export default function PlanPage() {
 
         {state === 'ready' && plan && (
           <div className="animate-fade-in space-y-4">
+            <AnimatePresence>
+              {justGenerated && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center gap-3 rounded-lg border border-success/30 bg-success/10 px-4 py-3"
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="11" stroke="hsl(var(--il-success))" strokeWidth="1.5" />
+                    <motion.path
+                      d="M7 12.5l3 3 7-7"
+                      stroke="hsl(var(--il-success))"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      variants={checkmarkDraw}
+                      initial="hidden"
+                      animate="visible"
+                    />
+                  </svg>
+                  <div>
+                    <p className="text-sm font-semibold text-success">Plan Generated</p>
+                    <p className="text-xs text-text-secondary">Your weekly plan is ready!</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <Card>
               <div className="flex items-center gap-2">
                 <CalendarMonth className="text-accent" fontSize="small" />

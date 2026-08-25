@@ -1,6 +1,9 @@
 import { Exercise, PrismaClient } from '@prisma/client';
 import { Response, Router } from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth';
+import { analyticsService } from '../services/analytics.service';
+import { calculateProgress } from '../services/progression';
+import { detectPlateau } from '../services/plateau';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -143,10 +146,27 @@ router.get('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       });
     }
 
+    const history = await analyticsService.getExerciseHistory(userId, exercise.name, 100);
+    const personalBest = history.reduce<(typeof history)[number] | null>((best, set) => {
+      if (!best) return set;
+      if (set.actualWeight > best.actualWeight) return set;
+      if (set.actualWeight === best.actualWeight && set.actualReps > best.actualReps) return set;
+      return best;
+    }, null);
+    const recommendation =
+      history.length > 0
+        ? calculateProgress(history, exercise.defaultReps, exercise.muscleGroup)
+        : null;
+    const plateau = history.length > 0 ? detectPlateau(history, exercise.defaultReps) : null;
+
     return res.json({
       success: true,
       data: {
         exercise,
+        history,
+        personalBest,
+        recommendation,
+        plateau,
       },
     });
   } catch (error) {

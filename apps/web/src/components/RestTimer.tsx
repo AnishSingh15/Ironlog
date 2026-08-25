@@ -95,6 +95,17 @@ export function RestTimer({
     setTimeLeft(targetTime);
   }, [targetTime]);
 
+  const addThirtySeconds = useCallback(() => {
+    setTimeLeft(prev => prev + 30);
+    setTargetTime(prev => prev + 30);
+  }, []);
+
+  const skipRest = useCallback(() => {
+    setIsRunning(false);
+    setTimeLeft(0);
+    onTimerEnd?.();
+  }, [onTimerEnd]);
+
   const handleTimeChange = useCallback(
     (_: Event, newValue: number | number[]) => {
       const value = Array.isArray(newValue) ? newValue[0] : newValue;
@@ -270,6 +281,23 @@ export function RestTimer({
           )}
         </IconButton>
       </div>
+
+      {timeLeft > 0 && (
+        <div className="mt-3 flex justify-center gap-2">
+          <button
+            onClick={addThirtySeconds}
+            className="rounded-md border border-border-default px-3 py-1.5 font-mono text-xs font-semibold text-text-secondary hover:border-border-strong"
+          >
+            +30s
+          </button>
+          <button
+            onClick={skipRest}
+            className="rounded-md border border-border-default px-3 py-1.5 text-xs font-semibold text-text-secondary hover:border-border-strong"
+          >
+            Skip Rest
+          </button>
+        </div>
+      )}
 
       {timeLeft === 0 && (
         <motion.p

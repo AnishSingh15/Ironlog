@@ -50,6 +50,31 @@ vi.mock('../src/services/analytics.service', () => ({
       { date: new Date('2026-08-01'), actualWeight: 60, actualReps: 8, plannedWeight: 60, plannedReps: 8, setIndex: 0 },
       { date: new Date('2026-08-08'), actualWeight: 62.5, actualReps: 8, plannedWeight: 62.5, plannedReps: 8, setIndex: 0 },
     ]),
+    getPlateauScan: vi.fn(async () => [
+      { exercise: 'Overhead Press', durationSessions: 4, trend: 'flat', confidence: 0.8, reasoning: 'Over your last 4 sessions...' },
+    ]),
+    getWeekReview: vi.fn(async () => ({
+      sessionsThisWeek: 3,
+      volumeThisWeek: 4500,
+      volumeLastWeek: 4000,
+      volumeChangePct: 12,
+      personalRecordsThisWeek: [],
+      plateauedExercises: [],
+    })),
+    getTodayAdaptation: vi.fn(async () => [
+      {
+        exercise: 'Bench Press',
+        setIds: ['set-1'],
+        recommendation: {
+          action: 'increase_weight',
+          recommendedWeightKg: 65,
+          targetReps: 8,
+          confidence: 0.7,
+          evidence: [],
+          reasoning: 'Consistent overload.',
+        },
+      },
+    ]),
   },
 }));
 
@@ -161,6 +186,39 @@ describe('AI routes', () => {
       .get('/api/v1/ai/exercise-recommendation')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(400);
+  });
+
+  it('returns a deterministic plateau scan for why-stuck', async () => {
+    const { default: app } = await import('../src/index');
+    const response = await request(app)
+      .get('/api/v1/ai/why-stuck')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.plateaus[0].exercise).toBe('Overhead Press');
+  });
+
+  it('returns a deterministic week review', async () => {
+    const { default: app } = await import('../src/index');
+    const response = await request(app)
+      .get('/api/v1/ai/week-review')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.review.sessionsThisWeek).toBe(3);
+  });
+
+  it('returns deterministic adaptations for today', async () => {
+    const { default: app } = await import('../src/index');
+    const response = await request(app)
+      .get('/api/v1/ai/adapt-today')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.adaptations[0].exercise).toBe('Bench Press');
   });
 
   it('rejects knowledge-search with a missing query', async () => {

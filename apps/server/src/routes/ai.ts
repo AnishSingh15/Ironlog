@@ -154,6 +154,46 @@ router.get('/exercise-recommendation', async (req: AuthRequest, res: Response) =
   }
 });
 
+// Deterministic, no LLM call - every plateaued exercise with its own reasoning.
+router.get('/why-stuck', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+
+  try {
+    const plateaus = await analyticsService.getPlateauScan(userId);
+    return res.json({ success: true, data: { plateaus } });
+  } catch (error) {
+    console.error('Why stuck error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+});
+
+// Deterministic, no LLM call - real sessions/volume/PRs/plateaus for the current week.
+router.get('/week-review', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+
+  try {
+    const review = await analyticsService.getWeekReview(userId);
+    return res.json({ success: true, data: { review } });
+  } catch (error) {
+    console.error('Week review error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+});
+
+// Deterministic, no LLM call - per-exercise recommendations for today's not-yet-completed
+// sets. Read-only: applying one is a separate PATCH /set-records/:id call the client makes.
+router.get('/adapt-today', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+
+  try {
+    const adaptations = await analyticsService.getTodayAdaptation(userId);
+    return res.json({ success: true, data: { adaptations } });
+  } catch (error) {
+    console.error('Adapt today error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+});
+
 const PLAN_WEEK_SYSTEM_PROMPT = `You are IronLog's training coach, building a personalized 7-day training
 plan for the week ahead. Use the provided tools to ground the plan in the user's real training history -
 recent frequency, weekly volume, exercises that are plateaued, and general programming knowledge via

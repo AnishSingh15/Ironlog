@@ -72,6 +72,18 @@ export interface WorkoutAnalysis {
   overallTrend: 'improving' | 'steady' | 'declining' | 'insufficient_data';
 }
 
+// Shape returned by the deterministic progression.ts service (exercise-recommendation,
+// exercise detail, adapt-today) - distinct from the AI-generated ProgressionRecommendation
+// above (no `exercise`/`type`/`targetSets`, and targetReps is a plain number here).
+export interface DeterministicRecommendation {
+  action: 'increase_weight' | 'maintain' | 'deload' | 'insufficient_data';
+  recommendedWeightKg: number;
+  targetReps: number;
+  confidence: number;
+  evidence: string[];
+  reasoning: string;
+}
+
 export interface FitnessStateSnapshot {
   trainingFrequency: {
     totalSessions: number;
@@ -111,8 +123,31 @@ export interface ExerciseDetail {
   exercise: { id: string; name: string; muscleGroup: string; defaultSets: number; defaultReps: number };
   history: PerformedSet[];
   personalBest: PerformedSet | null;
-  recommendation: ProgressionRecommendation | null;
+  recommendation: DeterministicRecommendation | null;
   plateau: { status: 'plateau' | 'progressing' | 'insufficient_data'; confidence: number; durationSessions: number; trend: 'flat' | 'upward' | 'downward' } | null;
+}
+
+export interface PlateauScanEntry {
+  exercise: string;
+  durationSessions: number;
+  trend: 'flat' | 'upward' | 'downward';
+  confidence: number;
+  reasoning: string;
+}
+
+export interface WeekReview {
+  sessionsThisWeek: number;
+  volumeThisWeek: number;
+  volumeLastWeek: number;
+  volumeChangePct: number | null;
+  personalRecordsThisWeek: PersonalRecord[];
+  plateauedExercises: string[];
+}
+
+export interface TodayAdaptation {
+  exercise: string;
+  setIds: string[];
+  recommendation: DeterministicRecommendation;
 }
 
 export interface KnowledgeMatch {
@@ -393,8 +428,20 @@ export class ApiClient {
 
   async getExerciseRecommendation(
     exerciseName: string
-  ): Promise<ApiResponse<{ recommendation: ProgressionRecommendation }>> {
+  ): Promise<ApiResponse<{ recommendation: DeterministicRecommendation }>> {
     return this.get(`/ai/exercise-recommendation?exercise=${encodeURIComponent(exerciseName)}`);
+  }
+
+  async getWhyStuck(): Promise<ApiResponse<{ plateaus: PlateauScanEntry[] }>> {
+    return this.get('/ai/why-stuck');
+  }
+
+  async getWeekReview(): Promise<ApiResponse<{ review: WeekReview }>> {
+    return this.get('/ai/week-review');
+  }
+
+  async getTodayAdaptation(): Promise<ApiResponse<{ adaptations: TodayAdaptation[] }>> {
+    return this.get('/ai/adapt-today');
   }
 
   async getFitnessState(): Promise<ApiResponse<FitnessStateSnapshot>> {

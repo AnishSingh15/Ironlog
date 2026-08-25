@@ -189,4 +189,97 @@ describe('analyticsService', () => {
     expect(days[0]?.status).toBe('completed');
     expect(days[1]?.status).toBe('rest');
   });
+
+  it('getPlateauScan returns every plateaued exercise with real reasoning, not just the top one', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Stuck User', email: `stuck-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+    const squat = await prisma.exercise.upsert({
+      where: { name: 'Squat' },
+      update: {},
+      create: { name: 'Squat', muscleGroup: 'Legs', defaultSets: 3, defaultReps: 8 },
+    });
+    const ohp = await prisma.exercise.upsert({
+      where: { name: 'Overhead Press' },
+      update: {},
+      create: { name: 'Overhead Press', muscleGroup: 'Shoulders', defaultSets: 3, defaultReps: 8 },
+    });
+
+    for (const exercise of [squat, ohp]) {
+      for (let i = 0; i < 4; i++) {
+        const day = await prisma.workoutDay.create({
+          data: { userId: user.id, date: new Date(Date.UTC(2026, 6, 1 + i * 3, exercise === squat ? 1 : 2)), completed: true },
+        });
+        await prisma.setRecord.create({
+          data: { workoutDayId: day.id, exerciseId: exercise.id, setIndex: 1, actualWeight: 100, actualReps: 5 },
+        });
+      }
+    }
+
+    const scan = await analyticsService.getPlateauScan(user.id);
+    expect(scan.map(p => p.exercise).sort()).toEqual(['Overhead Press', 'Squat']);
+    expect(scan[0]?.reasoning).toContain('sessions');
+  });
+
+  it('getWeekReview reports real sessions, volume, and PRs for the current week', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Review User', email: `review-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+    const exercise = await prisma.exercise.upsert({
+      where: { name: 'Deadlift' },
+      update: {},
+      create: { name: 'Deadlift', muscleGroup: 'Back', defaultSets: 3, defaultReps: 5 },
+    });
+
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const day = await prisma.workoutDay.create({ data: { userId: user.id, date: today, completed: true } });
+    await prisma.setRecord.create({
+      data: { workoutDayId: day.id, exerciseId: exercise.id, setIndex: 1, actualWeight: 140, actualReps: 5 },
+    });
+
+    const review = await analyticsService.getWeekReview(user.id);
+    expect(review.sessionsThisWeek).toBe(1);
+    expect(review.volumeThisWeek).toBe(700);
+    expect(review.personalRecordsThisWeek).toEqual([
+      expect.objectContaining({ exercise: 'Deadlift', weightKg: 140 }),
+    ]);
+  });
+
+  it('getTodayAdaptation recommends only for exercises with enough history, on today\'s incomplete sets', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Adapt User', email: `adapt-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+    const exercise = await prisma.exercise.upsert({
+      where: { name: 'Bench Press' },
+      update: {},
+      create: { name: 'Bench Press', muscleGroup: 'Chest', defaultSets: 3, defaultReps: 8 },
+    });
+
+    // Two prior completed sessions give calculateProgress enough history to act on.
+    for (const [i, date] of [
+      new Date(Date.UTC(2026, 6, 1)),
+      new Date(Date.UTC(2026, 6, 4)),
+    ].entries()) {
+      const day = await prisma.workoutDay.create({ data: { userId: user.id, date, completed: true } });
+      await prisma.setRecord.create({
+        data: { workoutDayId: day.id, exerciseId: exercise.id, setIndex: 1, actualWeight: 60 + i * 2.5, actualReps: 8 },
+      });
+    }
+
+    // Today's workout has one incomplete set for the same exercise. Matches how workout
+    // days are actually created elsewhere (local server time, not UTC).
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayWorkout = await prisma.workoutDay.create({ data: { userId: user.id, date: today } });
+    const incompleteSet = await prisma.setRecord.create({
+      data: { workoutDayId: todayWorkout.id, exerciseId: exercise.id, setIndex: 1, plannedWeight: 62.5, plannedReps: 8 },
+    });
+
+    const adaptations = await analyticsService.getTodayAdaptation(user.id);
+    expect(adaptations).toHaveLength(1);
+    expect(adaptations[0]?.exercise).toBe('Bench Press');
+    expect(adaptations[0]?.setIds).toEqual([incompleteSet.id]);
+    expect(adaptations[0]?.recommendation.action).toBeDefined();
+  });
 });

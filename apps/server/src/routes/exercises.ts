@@ -19,10 +19,7 @@ router.get('/', authenticate, async (req: AuthRequest, res: Response) => {
       where.muscleGroup = muscleGroup;
     }
     if (search && typeof search === 'string') {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+      where.name = { contains: search, mode: 'insensitive' };
     }
 
     const exercises = await prisma.exercise.findMany({

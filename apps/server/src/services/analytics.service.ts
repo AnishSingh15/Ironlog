@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { detectPlateau, type PlateauTrend } from './plateau';
+import { calculateProgress, type ProgressionRecommendation } from './progression';
 
 const prisma = new PrismaClient();
 
@@ -47,6 +48,29 @@ export interface PlateauAlert {
   exercise: string;
   durationSessions: number;
   trend: PlateauTrend;
+}
+
+export interface PlateauScanEntry {
+  exercise: string;
+  durationSessions: number;
+  trend: PlateauTrend;
+  confidence: number;
+  reasoning: string;
+}
+
+export interface WeekReview {
+  sessionsThisWeek: number;
+  volumeThisWeek: number;
+  volumeLastWeek: number;
+  volumeChangePct: number | null;
+  personalRecordsThisWeek: PersonalRecord[];
+  plateauedExercises: string[];
+}
+
+export interface TodayAdaptation {
+  exercise: string;
+  setIds: string[];
+  recommendation: ProgressionRecommendation;
 }
 
 function startOfIsoWeek(date: Date): Date {
@@ -291,6 +315,130 @@ export class AnalyticsService {
 
     if (!best) return null;
     return { exercise: best.exercise, durationSessions: best.durationSessions, trend: best.trend };
+  }
+
+  // Every plateaued exercise (not just the top one), each with its own reasoning - powers
+  // "Why Am I Stuck?". Deterministic, no LLM call.
+  async getPlateauScan(userId: string): Promise<PlateauScanEntry[]> {
+    const recentExercises = await prisma.setRecord.findMany({
+      where: { workoutDay: { userId }, actualWeight: { not: null }, actualReps: { not: null } },
+      distinct: ['exerciseId'],
+      orderBy: { workoutDay: { date: 'desc' } },
+      include: { exercise: true },
+      take: 20,
+    });
+
+    const entries: PlateauScanEntry[] = [];
+
+    for (const record of recentExercises) {
+      const history = await this.getExerciseHistory(userId, record.exercise.name, 20);
+      const result = detectPlateau(history, record.exercise.defaultReps);
+
+      if (result.status === 'plateau') {
+        const trendCopy =
+          result.trend === 'flat'
+            ? 'the weight has stayed exactly the same'
+            : 'the weight is moving down, not up';
+        entries.push({
+          exercise: record.exercise.name,
+          durationSessions: result.durationSessions,
+          trend: result.trend,
+          confidence: result.confidence,
+          reasoning: `Over your last ${result.durationSessions} sessions, ${trendCopy} without consistently hitting the ${record.exercise.defaultReps}-rep target.`,
+        });
+      }
+    }
+
+    return entries.sort((a, b) => b.confidence - a.confidence);
+  }
+
+  // Deterministic weekly summary - real sessions/volume/PRs/plateaus, no invented copy.
+  async getWeekReview(userId: string): Promise<WeekReview> {
+    const thisWeekStart = startOfIsoWeek(new Date());
+    const lastWeekStart = new Date(thisWeekStart);
+    lastWeekStart.setUTCDate(lastWeekStart.getUTCDate() - 7);
+    const nextWeekStart = new Date(thisWeekStart);
+    nextWeekStart.setUTCDate(nextWeekStart.getUTCDate() + 7);
+
+    const [sessionsThisWeek, weeklyVolume, personalRecords, plateauScan] = await Promise.all([
+      prisma.workoutDay.count({
+        where: { userId, date: { gte: thisWeekStart, lt: nextWeekStart }, completed: true, isRestDay: false },
+      }),
+      this.getWeeklyVolume(userId, 2),
+      this.getPersonalRecords(userId),
+      this.getPlateauScan(userId),
+    ]);
+
+    const thisWeek = weeklyVolume.find(w => w.weekStart.getTime() === thisWeekStart.getTime());
+    const lastWeek = weeklyVolume.find(w => w.weekStart.getTime() === lastWeekStart.getTime());
+    const volumeThisWeek = thisWeek?.totalVolume ?? 0;
+    const volumeLastWeek = lastWeek?.totalVolume ?? 0;
+    const volumeChangePct =
+      volumeLastWeek > 0 ? Math.round(((volumeThisWeek - volumeLastWeek) / volumeLastWeek) * 100) : null;
+
+    const personalRecordsThisWeek = personalRecords.filter(
+      pr => pr.achievedAt >= thisWeekStart && pr.achievedAt < nextWeekStart
+    );
+
+    return {
+      sessionsThisWeek,
+      volumeThisWeek,
+      volumeLastWeek,
+      volumeChangePct,
+      personalRecordsThisWeek,
+      plateauedExercises: plateauScan.map(p => p.exercise),
+    };
+  }
+
+  // Deterministic per-exercise recommendations for today's not-yet-completed sets - powers
+  // "Adapt Today's Workout". The caller applies a recommendation by PATCHing plannedWeight/
+  // plannedReps on the returned setIds; nothing is mutated here.
+  async getTodayAdaptation(userId: string): Promise<TodayAdaptation[]> {
+    // Matches workout.service.ts's convention exactly (setHours, not setUTCHours) -
+    // WorkoutDay.date is written using local server time everywhere else, so a UTC-based
+    // "today" here would silently miss it whenever the server isn't running in UTC.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const workoutDay = await prisma.workoutDay.findFirst({
+      where: { userId, date: today },
+      include: { setRecords: { include: { exercise: true } } },
+    });
+
+    if (!workoutDay) return [];
+
+    const incompleteByExercise = new Map<
+      string,
+      { exerciseName: string; defaultReps: number; muscleGroup: string; setIds: string[] }
+    >();
+
+    for (const set of workoutDay.setRecords) {
+      if (set.actualWeight !== null && set.actualReps !== null) continue; // already logged
+      const existing = incompleteByExercise.get(set.exercise.id);
+      if (existing) {
+        existing.setIds.push(set.id);
+      } else {
+        incompleteByExercise.set(set.exercise.id, {
+          exerciseName: set.exercise.name,
+          defaultReps: set.exercise.defaultReps,
+          muscleGroup: set.exercise.muscleGroup,
+          setIds: [set.id],
+        });
+      }
+    }
+
+    const adaptations: TodayAdaptation[] = [];
+    for (const { exerciseName, defaultReps, muscleGroup, setIds } of incompleteByExercise.values()) {
+      const history = await this.getExerciseHistory(userId, exerciseName, 20);
+      if (history.length < 2) continue; // insufficient_data isn't worth surfacing here
+
+      const recommendation = calculateProgress(history, defaultReps, muscleGroup);
+      if (recommendation.action === 'insufficient_data') continue;
+
+      adaptations.push({ exercise: exerciseName, setIds, recommendation });
+    }
+
+    return adaptations;
   }
 }
 

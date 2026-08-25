@@ -170,6 +170,8 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response) => {
     const updateSchema = z.object({
       actualWeight: z.number().nullable().optional(),
       actualReps: z.number().int().positive().nullable().optional(),
+      plannedWeight: z.number().nullable().optional(),
+      plannedReps: z.number().int().positive().nullable().optional(),
     });
 
     const data = updateSchema.parse(req.body);
@@ -201,6 +203,8 @@ router.patch('/:id', authenticate, async (req: AuthRequest, res: Response) => {
       data: {
         actualWeight: data.actualWeight ?? setRecord.actualWeight,
         actualReps: data.actualReps ?? setRecord.actualReps,
+        plannedWeight: data.plannedWeight ?? setRecord.plannedWeight,
+        plannedReps: data.plannedReps ?? setRecord.plannedReps,
       },
       include: {
         exercise: true,

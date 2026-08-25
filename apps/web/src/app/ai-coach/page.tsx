@@ -9,12 +9,21 @@ import { Metric } from '@/components/ui/Metric';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { toast } from '@/components/ui/Toast';
 import { insightAppear } from '@/lib/motion';
-import { api, ProgressionRecommendation, WorkoutAnalysis } from '@/lib/api';
+import {
+  api,
+  DeterministicRecommendation,
+  PlateauScanEntry,
+  ProgressionRecommendation,
+  TodayAdaptation,
+  WeekReview,
+  WorkoutAnalysis,
+} from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import {
   Autorenew,
   AutoAwesome,
   CalendarMonth,
+  CheckCircle,
   HelpOutline,
   TrendingDown,
   TrendingFlat,
@@ -25,6 +34,7 @@ import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
 
+type View = 'analysis' | 'why-stuck' | 'week-review' | 'adapt-today';
 type LoadState = 'idle' | 'loading' | 'ready' | 'unavailable' | 'error';
 
 const trendCopy: Record<WorkoutAnalysis['overallTrend'], { label: string; icon: ReactNode }> = {
@@ -88,9 +98,15 @@ function RecommendationCard({ rec }: { rec: ProgressionRecommendation }) {
 export default function AICoachPage() {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
+  const [view, setView] = useState<View>('analysis');
   const [state, setState] = useState<LoadState>('idle');
-  const [analysis, setAnalysis] = useState<WorkoutAnalysis | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const [analysis, setAnalysis] = useState<WorkoutAnalysis | null>(null);
+  const [plateaus, setPlateaus] = useState<PlateauScanEntry[] | null>(null);
+  const [weekReview, setWeekReview] = useState<WeekReview | null>(null);
+  const [adaptations, setAdaptations] = useState<TodayAdaptation[] | null>(null);
+  const [appliedExercises, setAppliedExercises] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -99,6 +115,7 @@ export default function AICoachPage() {
   }, [isAuthenticated, router]);
 
   const runAnalysis = async () => {
+    setView('analysis');
     setState('loading');
     setErrorMessage(null);
     const response = await api.analyzeWorkout();
@@ -118,15 +135,72 @@ export default function AICoachPage() {
     setState('error');
   };
 
-  const comingSoon = (feature: string) => () =>
-    toast(`${feature} isn't available yet - the backend doesn't support this action yet.`);
+  const runWhyStuck = async () => {
+    setView('why-stuck');
+    setState('loading');
+    const response = await api.getWhyStuck();
+    if (response.success && response.data) {
+      setPlateaus(response.data.plateaus);
+      setState('ready');
+    } else {
+      setErrorMessage(response.error?.message || 'Could not check for plateaus.');
+      setState('error');
+    }
+  };
+
+  const runWeekReview = async () => {
+    setView('week-review');
+    setState('loading');
+    const response = await api.getWeekReview();
+    if (response.success && response.data) {
+      setWeekReview(response.data.review);
+      setState('ready');
+    } else {
+      setErrorMessage(response.error?.message || 'Could not build your week review.');
+      setState('error');
+    }
+  };
+
+  const runAdaptToday = async () => {
+    setView('adapt-today');
+    setState('loading');
+    setAppliedExercises(new Set());
+    const response = await api.getTodayAdaptation();
+    if (response.success && response.data) {
+      setAdaptations(response.data.adaptations);
+      setState('ready');
+    } else {
+      setErrorMessage(response.error?.message || "Could not adapt today's workout.");
+      setState('error');
+    }
+  };
+
+  const applyAdaptation = async (adaptation: TodayAdaptation) => {
+    const results = await Promise.all(
+      adaptation.setIds.map(setId =>
+        api.patch(`/set-records/${setId}`, {
+          plannedWeight: adaptation.recommendation.recommendedWeightKg,
+          plannedReps: adaptation.recommendation.targetReps,
+        })
+      )
+    );
+
+    if (results.every(r => r.success)) {
+      setAppliedExercises(prev => new Set(prev).add(adaptation.exercise));
+      toast.success(`${adaptation.exercise} updated for today's workout.`);
+    } else {
+      toast.error(`Couldn't update ${adaptation.exercise}. Try again.`);
+    }
+  };
+
+  const retry = { analysis: runAnalysis, 'why-stuck': runWhyStuck, 'week-review': runWeekReview, 'adapt-today': runAdaptToday }[view];
 
   const actions = [
-    { label: 'Analyze My Progress', icon: AutoAwesome, onClick: runAnalysis },
-    { label: 'Plan My Week', icon: CalendarMonth, onClick: () => router.push('/plan') },
-    { label: 'Why Am I Stuck?', icon: HelpOutline, onClick: comingSoon('Why Am I Stuck?'), soon: true },
-    { label: 'Adapt Today’s Workout', icon: Tune, onClick: comingSoon('Adapt Today’s Workout'), soon: true },
-    { label: 'Review My Week', icon: Autorenew, onClick: comingSoon('Review My Week'), soon: true },
+    { key: 'analysis' as const, label: 'Analyze My Progress', icon: AutoAwesome, onClick: runAnalysis },
+    { key: 'plan' as const, label: 'Plan My Week', icon: CalendarMonth, onClick: () => router.push('/plan') },
+    { key: 'why-stuck' as const, label: 'Why Am I Stuck?', icon: HelpOutline, onClick: runWhyStuck },
+    { key: 'adapt-today' as const, label: 'Adapt Today’s Workout', icon: Tune, onClick: runAdaptToday },
+    { key: 'week-review' as const, label: 'Review My Week', icon: Autorenew, onClick: runWeekReview },
   ];
 
   return (
@@ -141,17 +215,12 @@ export default function AICoachPage() {
         <div className="mb-5 grid grid-cols-2 gap-2">
           {actions.map(action => (
             <button
-              key={action.label}
+              key={action.key}
               onClick={action.onClick}
               className="relative flex flex-col items-start gap-2 rounded-lg border border-border-default bg-surface-1 p-3 text-left transition-colors hover:border-border-strong hover:bg-surface-2"
             >
               <action.icon fontSize="small" className="text-accent" />
               <span className="text-xs font-semibold text-text-primary">{action.label}</span>
-              {action.soon && (
-                <Badge tone="neutral" className="absolute right-2 top-2 !text-[9px]">
-                  Soon
-                </Badge>
-              )}
             </button>
           ))}
         </div>
@@ -188,13 +257,13 @@ export default function AICoachPage() {
 
         {state === 'error' && (
           <EmptyState
-            title="Couldn't analyze your training"
+            title="Something went wrong"
             description={errorMessage ?? undefined}
-            action={<Button variant="secondary" onClick={runAnalysis}>Try again</Button>}
+            action={<Button variant="secondary" onClick={retry}>Try again</Button>}
           />
         )}
 
-        {state === 'ready' && analysis && (
+        {state === 'ready' && view === 'analysis' && analysis && (
           <motion.div variants={insightAppear} initial="hidden" animate="visible" className="space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
               Recent Insights
@@ -235,6 +304,125 @@ export default function AICoachPage() {
             <Button variant="secondary" onClick={runAnalysis} className="w-full">
               Re-analyze
             </Button>
+          </motion.div>
+        )}
+
+        {state === 'ready' && view === 'why-stuck' && plateaus && (
+          <motion.div variants={insightAppear} initial="hidden" animate="visible" className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+              Why Am I Stuck?
+            </p>
+            {plateaus.length === 0 ? (
+              <EmptyState
+                icon={<CheckCircle fontSize="large" className="text-success" />}
+                title="Nothing's stuck right now"
+                description="None of your recently-trained exercises show a plateau."
+              />
+            ) : (
+              plateaus.map(p => (
+                <Card key={p.exercise} className="border-l-2 border-l-warning">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-text-primary">{p.exercise}</p>
+                    <Badge tone="warning">{Math.round(p.confidence * 100)}% confident</Badge>
+                  </div>
+                  <p className="mt-2 text-sm text-text-secondary">{p.reasoning}</p>
+                </Card>
+              ))
+            )}
+          </motion.div>
+        )}
+
+        {state === 'ready' && view === 'week-review' && weekReview && (
+          <motion.div variants={insightAppear} initial="hidden" animate="visible" className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+              Review My Week
+            </p>
+            <Card>
+              <div className="grid grid-cols-2 gap-4">
+                <Metric value={weekReview.sessionsThisWeek} unit="sessions" size="lg" />
+                <div>
+                  <p className="font-mono text-3xl font-bold text-text-primary">
+                    {Math.round(weekReview.volumeThisWeek).toLocaleString()}
+                  </p>
+                  <p className="mt-1 text-xs text-text-tertiary">kg volume</p>
+                  {weekReview.volumeChangePct !== null && (
+                    <p
+                      className={`mt-1 text-xs font-semibold ${weekReview.volumeChangePct >= 0 ? 'text-success' : 'text-danger'}`}
+                    >
+                      {weekReview.volumeChangePct >= 0 ? '+' : ''}
+                      {weekReview.volumeChangePct}% vs last week
+                    </p>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            {weekReview.personalRecordsThisWeek.length > 0 && (
+              <Card>
+                <p className="text-sm font-semibold text-text-primary">Personal records this week</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {weekReview.personalRecordsThisWeek.map(pr => (
+                    <Badge key={pr.exercise} tone="success">
+                      {pr.exercise}: {pr.weightKg}kg
+                    </Badge>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {weekReview.plateauedExercises.length > 0 && (
+              <Card>
+                <p className="text-sm font-semibold text-text-primary">Still plateaued</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {weekReview.plateauedExercises.map(name => (
+                    <Badge key={name} tone="warning">
+                      {name}
+                    </Badge>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </motion.div>
+        )}
+
+        {state === 'ready' && view === 'adapt-today' && adaptations && (
+          <motion.div variants={insightAppear} initial="hidden" animate="visible" className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+              Adapt Today&apos;s Workout
+            </p>
+            {adaptations.length === 0 ? (
+              <EmptyState
+                title="Nothing to adapt"
+                description="No workout scheduled today, everything's already logged, or there isn't enough history yet for a recommendation."
+              />
+            ) : (
+              adaptations.map(a => {
+                const applied = appliedExercises.has(a.exercise);
+                const action = actionCopy[a.recommendation.action];
+                return (
+                  <Card key={a.exercise} className="border-l-2 border-l-accent">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-text-primary">{a.exercise}</p>
+                        <Badge tone={action.tone} className="mt-1.5">
+                          {action.label}
+                        </Badge>
+                      </div>
+                      <Metric value={a.recommendation.recommendedWeightKg} unit="kg" size="lg" />
+                    </div>
+                    <p className="mt-3 text-sm text-text-secondary">{a.recommendation.reasoning}</p>
+                    <Button
+                      className="mt-3 w-full"
+                      variant={applied ? 'secondary' : 'primary'}
+                      disabled={applied}
+                      onClick={() => applyAdaptation(a)}
+                    >
+                      {applied ? 'Applied to today’s plan' : "Apply to today's workout"}
+                    </Button>
+                  </Card>
+                );
+              })
+            )}
           </motion.div>
         )}
       </div>

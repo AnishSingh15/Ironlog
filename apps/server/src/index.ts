@@ -6,6 +6,7 @@ import morgan from 'morgan';
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
 import { notFound } from './middleware/notFound';
+import aiRoutes from './routes/ai';
 import authRoutes from './routes/auth';
 import exerciseRoutes from './routes/exercises';
 import setRecordRoutes from './routes/setRecords';
@@ -53,6 +54,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/workouts', workoutRoutes);
 app.use('/api/v1/exercises', exerciseRoutes);
 app.use('/api/v1/set-records', setRecordRoutes);
+app.use('/api/v1/ai', aiRoutes);
 
 // Error handling
 app.use(notFound);

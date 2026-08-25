@@ -30,8 +30,6 @@ const getApiBaseUrl = (): string => {
   return result;
 };
 
-const API_BASE_URL = getApiBaseUrl();
-
 // Types
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -137,11 +135,22 @@ class TokenManager {
 
 // API client class
 export class ApiClient {
-  private baseURL: string;
+  private baseURL: string | null = null;
 
-  constructor(baseURL: string = API_BASE_URL) {
-    // Simple and reliable: just append /api/v1 to clean base URL
-    const cleanBaseURL = baseURL.replace(/\/+$/, ''); // Remove trailing slashes
+  constructor(private readonly explicitBaseURL?: string) {}
+
+  // Resolved lazily on first real request instead of at construction time. This class is
+  // instantiated at module load (`export const api = new ApiClient()` below), which during
+  // `next build` runs for every page — including auto-generated ones like /_not-found — so
+  // resolving (and validating) the base URL here would fail the entire production build
+  // whenever NEXT_PUBLIC_API_URL is unset, regardless of whether that page ever calls the API.
+  private resolveBaseURL(): string {
+    if (this.baseURL) {
+      return this.baseURL;
+    }
+
+    const rawBaseURL = this.explicitBaseURL ?? getApiBaseUrl();
+    const cleanBaseURL = rawBaseURL.replace(/\/+$/, ''); // Remove trailing slashes
     this.baseURL = `${cleanBaseURL}/api/v1`;
 
     // Always log for debugging with environment info
@@ -150,7 +159,7 @@ export class ApiClient {
       envVar: process.env.NEXT_PUBLIC_API_URL,
       isProduction: process.env.NODE_ENV === 'production',
       usingFallback: !process.env.NEXT_PUBLIC_API_URL && process.env.NODE_ENV !== 'production',
-      inputBaseURL: baseURL,
+      inputBaseURL: rawBaseURL,
       cleanBaseURL,
       finalBaseURL: this.baseURL,
       // Additional debug info
@@ -159,20 +168,21 @@ export class ApiClient {
       envVarType: typeof process.env.NEXT_PUBLIC_API_URL,
       envVarLength: process.env.NEXT_PUBLIC_API_URL?.length,
     });
+
+    return this.baseURL;
   }
 
   private async makeRequest<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}${endpoint}`;
+    const url = `${this.resolveBaseURL()}${endpoint}`;
 
     // Debug logging - ALWAYS log to catch the issue
     console.log('🔍 API Request Debug:', {
       endpoint,
       baseURL: this.baseURL,
       finalURL: url,
-      envVar: API_BASE_URL,
     });
 
     // Add authorization header if token exists

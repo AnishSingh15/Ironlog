@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:15
+        image: pgvector/pgvector:pg15
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: ironlog_test
@@ -192,7 +192,7 @@ jobs:
     needs: [build]
     services:
       postgres:
-        image: postgres:15
+        image: pgvector/pgvector:pg15
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: ironlog_e2e
@@ -237,7 +237,6 @@ jobs:
         run: |
           cd apps/server
           pnpm prisma migrate deploy
-          pnpm prisma db seed
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ironlog_e2e
 

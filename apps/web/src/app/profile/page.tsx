@@ -1,8 +1,10 @@
 'use client';
 
 import { AppHeader } from '@/components/AppHeader';
+import { ThemeToggleSwitch } from '@/components/ThemeToggleSwitch';
 import { Button as IlButton } from '@/components/ui/Button';
 import { Card as IlCard } from '@/components/ui/Card';
+import { toast } from '@/components/ui/Toast';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { profileUpdateSchema } from '@/lib/validations';
@@ -11,11 +13,12 @@ import {
   Cancel as CancelIcon,
   Edit as EditIcon,
   Logout as LogoutIcon,
+  Palette as PaletteIcon,
   Person as PersonIcon,
   Save as SaveIcon,
   Security as SecurityIcon,
 } from '@mui/icons-material';
-import { Alert, TextField } from '@mui/material';
+import { TextField } from '@mui/material';
 import { Field, Form, Formik } from 'formik';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -39,45 +42,39 @@ export default function ProfilePage() {
 
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const handleProfileUpdate = async (values: ProfileFormData) => {
     try {
-      setError(null);
-      setSuccess(null);
 
       profileUpdateSchema.parse(values);
 
       const response = await api.put('/auth/profile', values);
 
       setUser((response.data as any)?.user);
-      setSuccess('Profile updated successfully!');
+      toast.success('Profile updated successfully!');
       setIsEditingProfile(false);
     } catch (error: any) {
       console.error('Profile update failed:', error);
       if (error instanceof z.ZodError) {
-        setError('Please check your input and try again.');
+        toast.error('Please check your input and try again.');
       } else if (error.response?.data?.message) {
-        setError(error.response.data.message);
+        toast.error(error.response.data.message);
       } else {
-        setError('Failed to update profile. Please try again.');
+        toast.error('Failed to update profile. Please try again.');
       }
     }
   };
 
   const handlePasswordChange = async (values: PasswordFormData) => {
     try {
-      setError(null);
-      setSuccess(null);
 
       if (values.newPassword !== values.confirmPassword) {
-        setError('New passwords do not match.');
+        toast.error('New passwords do not match.');
         return;
       }
 
       if (values.newPassword.length < 8) {
-        setError('New password must be at least 8 characters long.');
+        toast.error('New password must be at least 8 characters long.');
         return;
       }
 
@@ -86,14 +83,14 @@ export default function ProfilePage() {
         newPassword: values.newPassword,
       });
 
-      setSuccess('Password changed successfully!');
+      toast.success('Password changed successfully!');
       setIsChangingPassword(false);
     } catch (error: any) {
       console.error('Password change failed:', error);
       if (error.response?.data?.message) {
-        setError(error.response.data.message);
+        toast.error(error.response.data.message);
       } else {
-        setError('Failed to change password. Please try again.');
+        toast.error('Failed to change password. Please try again.');
       }
     }
   };
@@ -111,7 +108,7 @@ export default function ProfilePage() {
       router.push('/');
     } catch (error: any) {
       console.error('Account deletion failed:', error);
-      setError('Failed to delete account. Please try again.');
+      toast.error('Failed to delete account. Please try again.');
     }
   };
 
@@ -123,18 +120,6 @@ export default function ProfilePage() {
     <>
       <AppHeader title="Settings" showWeightToggle={false} />
       <div className="mx-auto max-w-2xl px-4 py-5 pb-24 md:pb-6">
-        {error && (
-          <Alert severity="error" className="!mb-4 !rounded-lg" onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-
-        {success && (
-          <Alert severity="success" className="!mb-4 !rounded-lg" onClose={() => setSuccess(null)}>
-            {success}
-          </Alert>
-        )}
-
         <IlCard className="mb-4">
           <div className="mb-4 flex items-center gap-2">
             <PersonIcon className="text-accent" fontSize="small" />
@@ -306,6 +291,20 @@ export default function ProfilePage() {
               Change password
             </IlButton>
           )}
+        </IlCard>
+
+        <IlCard className="mb-4">
+          <div className="mb-4 flex items-center gap-2">
+            <PaletteIcon className="text-accent" fontSize="small" />
+            <h2 className="text-base font-semibold text-text-primary">Appearance</h2>
+          </div>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-text-primary">Theme</p>
+              <p className="text-xs text-text-tertiary">Switch between light and dark mode.</p>
+            </div>
+            <ThemeToggleSwitch />
+          </div>
         </IlCard>
 
         <IlCard>

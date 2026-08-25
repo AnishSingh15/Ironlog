@@ -1,12 +1,12 @@
 'use client';
 
-import { ThemeToggle } from '@/components/theme-toggle';
+import { ThemeToggleSwitch } from '@/components/ThemeToggleSwitch';
 import { Button as IlButton } from '@/components/ui/Button';
 import { useAuth } from '@/hooks/useAuth';
 import { registerSchema, type RegisterFormData } from '@/lib/validations';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { Alert, Box, CircularProgress, IconButton, InputAdornment, TextField } from '@mui/material';
+import { ErrorOutline, Visibility, VisibilityOff } from '@mui/icons-material';
+import { Box, CircularProgress, IconButton, InputAdornment, TextField } from '@mui/material';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -40,7 +40,7 @@ export default function RegisterPage() {
   return (
     <div className="relative flex min-h-screen items-center justify-center bg-canvas px-4 py-10">
       <div className="absolute right-5 top-5">
-        <ThemeToggle />
+        <ThemeToggleSwitch />
       </div>
 
       <div className="w-full max-w-sm rounded-xl border border-border-default bg-surface-1 p-8">
@@ -50,9 +50,10 @@ export default function RegisterPage() {
         </div>
 
         {error && (
-          <Alert severity="error" className="!mb-4 !rounded-lg">
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
+            <ErrorOutline fontSize="small" />
             {error}
-          </Alert>
+          </div>
         )}
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">

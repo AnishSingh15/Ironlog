@@ -2,22 +2,27 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
 }
 
 model User {
-  id           String       @id @default(cuid())
-  name         String
-  email        String       @unique
-  passwordHash String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  workoutDays  WorkoutDay[]
+  id            String        @id @default(cuid())
+  name          String
+  email         String        @unique
+  passwordHash  String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  workoutDays   WorkoutDay[]
+  fitnessState  FitnessState?
+  coachMemories CoachMemory[]
+  agentRuns     AgentRun[]
 
   @@map("users")
 }
@@ -66,4 +71,83 @@ model SetRecord {
 
   @@unique([workoutDayId, exerciseId, setIndex])
   @@map("set_records")
+}
+
+model FitnessState {
+  id                       String    @id @default(cuid())
+  userId                   String    @unique
+  goals                    Json?
+  trainingExperience       String?
+  currentProgram           String?
+  weeklyVolume             Json?
+  trainingFrequency        Float?
+  consistencyScore         Float?
+  progressingExercises     String[]
+  stalledExercises         String[]
+  recentPerformanceTrend   String?
+  recoverySignals          Json?
+  preferredExercises       String[]
+  dislikedExercises        String[]
+  preferredSessionDuration Int?
+  equipment                String[]
+  updatedAt                DateTime  @updatedAt
+  user                     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("fitness_states")
+}
+
+enum CoachMemoryType {
+  GOAL
+  PREFERENCE
+  CONSTRAINT
+  FACT
+}
+
+model CoachMemory {
+  id         String          @id @default(cuid())
+  userId     String
+  type       CoachMemoryType
+  content    String
+  source     String
+  confidence Float?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  expiresAt  DateTime?
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("coach_memories")
+}
+
+model KnowledgeChunk {
+  id         String                       @id @default(cuid())
+  source     String
+  title      String
+  content    String
+  chunkIndex Int
+  metadata   Json
+  embedding  Unsupported("vector(1536)")?
+  createdAt  DateTime                     @default(now())
+
+  @@map("knowledge_chunks")
+}
+
+model AgentRun {
+  id               String   @id @default(cuid())
+  userId           String
+  workflow         String
+  model            String
+  status           String
+  toolCalls        Json
+  tokensPrompt     Int?
+  tokensCompletion Int?
+  errorMessage     String?
+  userAccepted     Boolean?
+  startedAt        DateTime
+  finishedAt       DateTime
+  createdAt        DateTime @default(now())
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, workflow])
+  @@map("agent_runs")
 }

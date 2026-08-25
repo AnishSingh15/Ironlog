@@ -41,7 +41,7 @@ describe('Auth Routes', () => {
     expect(response.body.success).toBe(true);
     expect(response.body.data.user.email).toBe(userData.email);
     expect(response.body.data.user.name).toBe(userData.name);
-    expect(response.body.data.accessToken).toBeDefined();
+    expect(response.body.data.tokens.accessToken).toBeDefined();
     expect(response.body.data.user.passwordHash).toBeUndefined();
   });
 
@@ -66,7 +66,7 @@ describe('Auth Routes', () => {
 
     expect(response.body.success).toBe(true);
     expect(response.body.data.user.email).toBe(userData.email);
-    expect(response.body.data.accessToken).toBeDefined();
+    expect(response.body.data.tokens.accessToken).toBeDefined();
   });
 
   it('should reject login with invalid credentials', async () => {
@@ -79,6 +79,6 @@ describe('Auth Routes', () => {
       .expect(401);
 
     expect(response.body.success).toBe(false);
-    expect(response.body.error.message).toBe('Invalid email or password');
+    expect(response.body.error.message).toBe('Invalid credentials');
   });
 });

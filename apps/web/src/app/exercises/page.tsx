@@ -1,6 +1,10 @@
 'use client';
 
 import { AppHeader } from '@/components/AppHeader';
+import { Badge } from '@/components/ui/Badge';
+import { Button as IlButton } from '@/components/ui/Button';
+import { Card as IlCard } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useAuth } from '@/hooks/useAuth';
 import { useExercises, type Exercise, type ExerciseFormData } from '@/hooks/useExercises';
 import {
@@ -11,49 +15,26 @@ import {
 } from '@mui/icons-material';
 import {
   Alert,
-  Box,
-  Button,
-  Card,
-  CardActions,
-  CardContent,
-  Chip,
   CircularProgress,
-  Container,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Fab,
   FormControl,
-  Grid,
   IconButton,
   InputLabel,
   MenuItem,
   Select,
   Snackbar,
   TextField,
-  Typography,
-  useTheme,
 } from '@mui/material';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 const MUSCLE_GROUPS = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Cardio', 'Full Body'];
 
-const muscleGroupColors = {
-  Chest: '#FF6B6B',
-  Back: '#4ECDC4',
-  Shoulders: '#45B7D1',
-  Arms: '#96CEB4',
-  Legs: '#FFEAA7',
-  Core: '#DDA0DD',
-  Cardio: '#FFA07A',
-  'Full Body': '#98D8C8',
-};
-
 export default function ExercisesPage() {
-  const theme = useTheme();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -77,14 +58,12 @@ export default function ExercisesPage() {
     severity: 'success',
   });
 
-  // Authentication check
   useEffect(() => {
     if (!isAuthenticated) {
       router.push('/login');
     }
   }, [isAuthenticated, router]);
 
-  // Use the custom hook with filters
   const { exercises, loading, error, createExercise, updateExercise, deleteExercise } =
     useExercises({
       search: searchTerm,
@@ -113,12 +92,7 @@ export default function ExercisesPage() {
       });
     } else {
       setEditingExercise(null);
-      setFormData({
-        name: '',
-        muscleGroup: '',
-        defaultSets: 3,
-        defaultReps: 10,
-      });
+      setFormData({ name: '', muscleGroup: '', defaultSets: 3, defaultReps: 10 });
     }
     setDialogOpen(true);
   };
@@ -126,12 +100,7 @@ export default function ExercisesPage() {
   const handleCloseDialog = () => {
     setDialogOpen(false);
     setEditingExercise(null);
-    setFormData({
-      name: '',
-      muscleGroup: '',
-      defaultSets: 3,
-      defaultReps: 10,
-    });
+    setFormData({ name: '', muscleGroup: '', defaultSets: 3, defaultReps: 10 });
   };
 
   const handleSubmit = async () => {
@@ -202,49 +171,34 @@ export default function ExercisesPage() {
 
   return (
     <>
-      <AppHeader title="Exercise Manager" showWeightToggle={false} />
+      <AppHeader title="Exercises" showWeightToggle={false} />
 
-      <Container maxWidth="lg" sx={{ py: 3 }}>
-        {/* Header */}
-        <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #F46036 0%, #E66CB2 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
-              mb: 1,
-            }}
-          >
-            Exercise Manager
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-            Manage your exercise database - add, edit, or remove exercises for your workouts
-          </Typography>
+      <div className="mx-auto max-w-5xl px-4 py-5 pb-24 md:pb-6">
+        <div className="mb-5">
+          <p className="mb-3 text-sm text-text-secondary">
+            Manage your exercise library - add, edit, or remove exercises used in workouts.
+          </p>
 
-          {/* Search and Filter Controls */}
-          <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="flex flex-wrap items-center gap-2">
             <TextField
               placeholder="Search exercises..."
+              size="small"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               InputProps={{
-                startAdornment: <SearchIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                startAdornment: <SearchIcon fontSize="small" className="mr-1 text-text-tertiary" />,
               }}
-              sx={{ minWidth: 250 }}
+              className="min-w-[220px]"
             />
 
-            <FormControl sx={{ minWidth: 180 }}>
+            <FormControl size="small" className="min-w-[160px]">
               <InputLabel>Muscle Group</InputLabel>
               <Select
                 value={selectedMuscleGroup}
                 onChange={e => setSelectedMuscleGroup(e.target.value)}
                 label="Muscle Group"
               >
-                <MenuItem value="">All Groups</MenuItem>
+                <MenuItem value="">All groups</MenuItem>
                 {MUSCLE_GROUPS.map(group => (
                   <MenuItem key={group} value={group}>
                     {group}
@@ -253,210 +207,118 @@ export default function ExercisesPage() {
               </Select>
             </FormControl>
 
-            <Button
-              variant="outlined"
+            <IlButton
+              variant="ghost"
+              size="sm"
               onClick={() => {
                 setSearchTerm('');
                 setSelectedMuscleGroup('');
               }}
             >
-              Clear Filters
-            </Button>
-          </Box>
-        </Box>
+              Clear filters
+            </IlButton>
+          </div>
+        </div>
 
-        {/* Loading State */}
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
-          </Box>
+          <div className="flex justify-center py-16">
+            <CircularProgress size={28} />
+          </div>
         ) : error ? (
-          <Box sx={{ textAlign: 'center', py: 8 }}>
-            <Alert severity="error" sx={{ mb: 2 }}>
+          <div className="py-8 text-center">
+            <Alert severity="error" className="!mb-3 !rounded-lg">
               {error}
             </Alert>
-            <Button variant="outlined" onClick={() => window.location.reload()}>
+            <IlButton variant="secondary" onClick={() => window.location.reload()}>
               Retry
-            </Button>
-          </Box>
+            </IlButton>
+          </div>
         ) : (
           <>
-            {/* Stats */}
-            <Box sx={{ mb: 4 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>
-                Total Exercises: {filteredExercises.length}
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-                {Object.entries(exercisesByMuscleGroup).map(([group, exercises]) => (
-                  <Chip
-                    key={group}
-                    label={`${group} (${exercises.length})`}
-                    sx={{
-                      bgcolor:
-                        muscleGroupColors[group as keyof typeof muscleGroupColors] || '#E0E0E0',
-                      color: 'white',
-                      fontWeight: 500,
-                    }}
-                  />
+            <div className="mb-5">
+              <p className="mb-2 text-sm font-medium text-text-secondary">
+                {filteredExercises.length} total exercises
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(exercisesByMuscleGroup).map(([group, groupExercises]) => (
+                  <Badge key={group}>
+                    {group} ({groupExercises.length})
+                  </Badge>
                 ))}
-              </Box>
-            </Box>
+              </div>
+            </div>
 
-            {/* Exercise Grid */}
             {Object.entries(exercisesByMuscleGroup).map(([muscleGroup, groupExercises]) => (
-              <Box key={muscleGroup} sx={{ mb: 4 }}>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    mb: 2,
-                    fontWeight: 600,
-                    color: muscleGroupColors[muscleGroup as keyof typeof muscleGroupColors],
-                  }}
-                >
+              <div key={muscleGroup} className="mb-6">
+                <h2 className="mb-2 text-sm font-semibold text-text-primary">
                   {muscleGroup} ({groupExercises.length})
-                </Typography>
+                </h2>
 
-                <Grid container spacing={2}>
-                  {groupExercises.map((exercise, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={exercise.id}>
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1, duration: 0.25 }}
-                      >
-                        <Card
-                          sx={{
-                            height: '100%',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            transition: 'all 0.25s ease-out',
-                            '&:hover': {
-                              transform: 'translateY(-4px)',
-                              boxShadow: theme.shadows[8],
-                            },
-                          }}
-                        >
-                          <CardContent sx={{ flexGrow: 1 }}>
-                            <Typography
-                              variant="h6"
-                              component="h2"
-                              sx={{
-                                fontWeight: 600,
-                                mb: 1,
-                                color: theme.palette.text.primary,
-                              }}
-                            >
-                              {exercise.name}
-                            </Typography>
-
-                            <Chip
-                              size="small"
-                              label={exercise.muscleGroup}
-                              sx={{
-                                bgcolor:
-                                  muscleGroupColors[
-                                    exercise.muscleGroup as keyof typeof muscleGroupColors
-                                  ] || '#E0E0E0',
-                                color: 'white',
-                                mb: 2,
-                              }}
-                            />
-
-                            <Typography variant="body2" color="text.secondary">
-                              Default: {exercise.defaultSets} sets × {exercise.defaultReps} reps
-                            </Typography>
-                          </CardContent>
-
-                          <CardActions sx={{ justifyContent: 'flex-end', pt: 0 }}>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleOpenDialog(exercise)}
-                              sx={{ color: theme.palette.primary.main }}
-                            >
-                              <EditIcon />
-                            </IconButton>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDelete(exercise)}
-                              sx={{ color: theme.palette.error.main }}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </CardActions>
-                        </Card>
-                      </motion.div>
-                    </Grid>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3">
+                  {groupExercises.map(exercise => (
+                    <IlCard key={exercise.id} className="flex flex-col justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-text-primary">{exercise.name}</p>
+                        <Badge className="mt-1.5">{exercise.muscleGroup}</Badge>
+                        <p className="mt-2 text-xs text-text-tertiary">
+                          Default: {exercise.defaultSets} sets x {exercise.defaultReps} reps
+                        </p>
+                      </div>
+                      <div className="mt-3 flex justify-end gap-1">
+                        <IconButton size="small" onClick={() => handleOpenDialog(exercise)}>
+                          <EditIcon fontSize="small" className="text-text-secondary" />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => handleDelete(exercise)}>
+                          <DeleteIcon fontSize="small" className="text-danger" />
+                        </IconButton>
+                      </div>
+                    </IlCard>
                   ))}
-                </Grid>
-              </Box>
+                </div>
+              </div>
             ))}
 
             {filteredExercises.length === 0 && (
-              <Box sx={{ textAlign: 'center', py: 8 }}>
-                <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-                  No exercises found
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {searchTerm || selectedMuscleGroup
-                    ? 'Try adjusting your search filters'
-                    : 'Get started by adding your first exercise'}
-                </Typography>
-              </Box>
+              <EmptyState
+                title="No exercises found"
+                description={
+                  searchTerm || selectedMuscleGroup
+                    ? 'Try adjusting your search filters.'
+                    : 'Get started by adding your first exercise.'
+                }
+              />
             )}
           </>
         )}
 
-        {/* Add Exercise FAB */}
         <Fab
-          color="primary"
           aria-label="add exercise"
           onClick={() => handleOpenDialog()}
-          sx={{
-            position: 'fixed',
-            bottom: 24,
-            right: 24,
-            background: 'linear-gradient(135deg, #F46036 0%, #E66CB2 100%)',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #E55530 0%, #D55CA0 100%)',
-              transform: 'scale(1.1)',
-            },
-            transition: 'all 0.25s ease-out',
-          }}
+          className="!fixed !bottom-24 !right-4 !z-40 md:!bottom-6 !bg-accent !text-white"
         >
           <AddIcon />
         </Fab>
 
-        {/* Add/Edit Exercise Dialog */}
-        <Dialog
-          open={dialogOpen}
-          onClose={handleCloseDialog}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 2,
-            },
-          }}
-        >
-          <DialogTitle>{editingExercise ? 'Edit Exercise' : 'Add New Exercise'}</DialogTitle>
+        <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>{editingExercise ? 'Edit exercise' : 'Add new exercise'}</DialogTitle>
 
           <DialogContent>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pt: 1 }}>
+            <div className="flex flex-col gap-4 pt-1">
               <TextField
-                label="Exercise Name"
+                label="Exercise name"
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 fullWidth
                 required
-                placeholder="e.g., Bench Press, Squats, etc."
+                placeholder="e.g., Bench Press, Squats"
               />
 
               <FormControl fullWidth required>
-                <InputLabel>Muscle Group</InputLabel>
+                <InputLabel>Muscle group</InputLabel>
                 <Select
                   value={formData.muscleGroup}
                   onChange={e => setFormData({ ...formData, muscleGroup: e.target.value })}
-                  label="Muscle Group"
+                  label="Muscle group"
                 >
                   {MUSCLE_GROUPS.map(group => (
                     <MenuItem key={group} value={group}>
@@ -466,9 +328,9 @@ export default function ExercisesPage() {
                 </Select>
               </FormControl>
 
-              <Box sx={{ display: 'flex', gap: 2 }}>
+              <div className="flex gap-3">
                 <TextField
-                  label="Default Sets"
+                  label="Default sets"
                   type="number"
                   value={formData.defaultSets}
                   onChange={e =>
@@ -479,7 +341,7 @@ export default function ExercisesPage() {
                 />
 
                 <TextField
-                  label="Default Reps"
+                  label="Default reps"
                   type="number"
                   value={formData.defaultReps}
                   onChange={e =>
@@ -488,46 +350,40 @@ export default function ExercisesPage() {
                   inputProps={{ min: 1, max: 100 }}
                   fullWidth
                 />
-              </Box>
-            </Box>
+              </div>
+            </div>
           </DialogContent>
 
-          <DialogActions sx={{ p: 3, pt: 1 }}>
-            <Button onClick={handleCloseDialog}>Cancel</Button>
-            <Button
+          <DialogActions className="!p-4">
+            <IlButton variant="ghost" onClick={handleCloseDialog}>
+              Cancel
+            </IlButton>
+            <IlButton
               onClick={handleSubmit}
-              variant="contained"
               disabled={!formData.name.trim() || !formData.muscleGroup || submitLoading}
-              sx={{
-                background: 'linear-gradient(135deg, #F46036 0%, #E66CB2 100%)',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #E55530 0%, #D55CA0 100%)',
-                },
-              }}
             >
               {submitLoading ? (
-                <CircularProgress size={24} color="inherit" />
+                <CircularProgress size={18} className="!text-accent-foreground" />
               ) : editingExercise ? (
-                'Update Exercise'
+                'Update exercise'
               ) : (
-                'Add Exercise'
+                'Add exercise'
               )}
-            </Button>
+            </IlButton>
           </DialogActions>
         </Dialog>
 
-        {/* Success/Error Snackbar */}
         <Snackbar
           open={snackbar.open}
           autoHideDuration={6000}
           onClose={handleCloseSnackbar}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
         >
-          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} className="!w-full">
             {snackbar.message}
           </Alert>
         </Snackbar>
-      </Container>
+      </div>
     </>
   );
 }

@@ -1,5 +1,8 @@
 'use client';
 
+import { AppHeader } from '@/components/AppHeader';
+import { Button as IlButton } from '@/components/ui/Button';
+import { Card as IlCard } from '@/components/ui/Card';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { profileUpdateSchema } from '@/lib/validations';
@@ -12,39 +15,11 @@ import {
   Save as SaveIcon,
   Security as SecurityIcon,
 } from '@mui/icons-material';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardActions,
-  CardContent,
-  Container,
-  Divider,
-  Grid,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, TextField } from '@mui/material';
 import { Field, Form, Formik } from 'formik';
-import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { z } from 'zod';
-
-const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 },
-  transition: { duration: 0.25, ease: 'easeOut' },
-};
-
-const staggerContainer = {
-  animate: {
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
-};
 
 interface ProfileFormData {
   name: string;
@@ -72,12 +47,10 @@ export default function ProfilePage() {
       setError(null);
       setSuccess(null);
 
-      // Validate form data
       profileUpdateSchema.parse(values);
 
       const response = await api.put('/auth/profile', values);
 
-      // Update user in store
       setUser((response.data as any)?.user);
       setSuccess('Profile updated successfully!');
       setIsEditingProfile(false);
@@ -147,307 +120,215 @@ export default function ProfilePage() {
   }
 
   return (
-    <Container maxWidth="md" sx={{ py: 2, pb: 10 }}>
-      <motion.div variants={staggerContainer} initial="initial" animate="animate">
-        {/* Header */}
-        <motion.div variants={fadeInUp}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-            <Box>
-              <Typography variant="h4" component="h1" fontWeight="bold">
-                Profile Settings
-              </Typography>
-              <Typography variant="body1" color="text.secondary">
-                Manage your account information and preferences
-              </Typography>
-            </Box>
-            <Button variant="outlined" onClick={() => router.push('/dashboard')}>
-              Back to Dashboard
-            </Button>
-          </Box>
-        </motion.div>
-
-        {/* Alerts */}
+    <>
+      <AppHeader title="Settings" showWeightToggle={false} />
+      <div className="mx-auto max-w-2xl px-4 py-5 pb-24 md:pb-6">
         {error && (
-          <motion.div variants={fadeInUp}>
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-              {error}
-            </Alert>
-          </motion.div>
+          <Alert severity="error" className="!mb-4 !rounded-lg" onClose={() => setError(null)}>
+            {error}
+          </Alert>
         )}
 
         {success && (
-          <motion.div variants={fadeInUp}>
-            <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-              {success}
-            </Alert>
-          </motion.div>
+          <Alert severity="success" className="!mb-4 !rounded-lg" onClose={() => setSuccess(null)}>
+            {success}
+          </Alert>
         )}
 
-        {/* Profile Information */}
-        <motion.div variants={fadeInUp}>
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" mb={3}>
-                <PersonIcon sx={{ mr: 2, color: 'primary.main' }} />
-                <Typography variant="h6" fontWeight="bold">
-                  Profile Information
-                </Typography>
-              </Box>
+        <IlCard className="mb-4">
+          <div className="mb-4 flex items-center gap-2">
+            <PersonIcon className="text-accent" fontSize="small" />
+            <h2 className="text-base font-semibold text-text-primary">Profile information</h2>
+          </div>
 
-              {!isEditingProfile ? (
-                <Box>
-                  <Grid container spacing={3}>
-                    <Grid item xs={12} sm={6}>
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                          Full Name
-                        </Typography>
-                        <Typography variant="body1" fontWeight="500">
-                          {user.name}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12} sm={6}>
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                          Email Address
-                        </Typography>
-                        <Typography variant="body1" fontWeight="500">
-                          {user.email}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Box>
-                        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                          Member Since
-                        </Typography>
-                        <Typography variant="body1" fontWeight="500">
-                          {new Date(user.createdAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </Box>
-              ) : (
-                <Formik
-                  initialValues={{
-                    name: user.name,
-                    email: user.email,
-                  }}
-                  onSubmit={handleProfileUpdate}
-                >
-                  {({ isSubmitting, values, handleChange, handleBlur }) => (
-                    <Form>
-                      <Grid container spacing={3}>
-                        <Grid item xs={12} sm={6}>
-                          <Field
-                            as={TextField}
-                            name="name"
-                            label="Full Name"
-                            fullWidth
-                            value={values.name}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            disabled={isSubmitting}
-                          />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <Field
-                            as={TextField}
-                            name="email"
-                            label="Email Address"
-                            type="email"
-                            fullWidth
-                            value={values.email}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            disabled={isSubmitting}
-                          />
-                        </Grid>
-                        <Grid item xs={12}>
-                          <Box display="flex" gap={2}>
-                            <Button
-                              type="submit"
-                              variant="contained"
-                              disabled={isSubmitting}
-                              startIcon={<SaveIcon />}
-                            >
-                              Save Changes
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outlined"
-                              onClick={() => setIsEditingProfile(false)}
-                              disabled={isSubmitting}
-                              startIcon={<CancelIcon />}
-                            >
-                              Cancel
-                            </Button>
-                          </Box>
-                        </Grid>
-                      </Grid>
-                    </Form>
-                  )}
-                </Formik>
+          {!isEditingProfile ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs text-text-tertiary">Full name</p>
+                <p className="text-sm font-medium text-text-primary">{user.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-text-tertiary">Email address</p>
+                <p className="text-sm font-medium text-text-primary">{user.email}</p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="text-xs text-text-tertiary">Member since</p>
+                <p className="text-sm font-medium text-text-primary">
+                  {new Date(user.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <Formik initialValues={{ name: user.name, email: user.email }} onSubmit={handleProfileUpdate}>
+              {({ isSubmitting, values, handleChange, handleBlur }) => (
+                <Form className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field
+                      as={TextField}
+                      name="name"
+                      label="Full name"
+                      fullWidth
+                      value={values.name}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      disabled={isSubmitting}
+                    />
+                    <Field
+                      as={TextField}
+                      name="email"
+                      label="Email address"
+                      type="email"
+                      fullWidth
+                      value={values.email}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <IlButton type="submit" size="sm" disabled={isSubmitting}>
+                      <SaveIcon fontSize="small" />
+                      Save changes
+                    </IlButton>
+                    <IlButton
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsEditingProfile(false)}
+                      disabled={isSubmitting}
+                    >
+                      <CancelIcon fontSize="small" />
+                      Cancel
+                    </IlButton>
+                  </div>
+                </Form>
               )}
-            </CardContent>
+            </Formik>
+          )}
 
-            {!isEditingProfile && (
-              <CardActions>
-                <Button onClick={() => setIsEditingProfile(true)} startIcon={<EditIcon />}>
-                  Edit Profile
-                </Button>
-              </CardActions>
-            )}
-          </Card>
-        </motion.div>
+          {!isEditingProfile && (
+            <IlButton variant="ghost" size="sm" className="mt-4" onClick={() => setIsEditingProfile(true)}>
+              <EditIcon fontSize="small" />
+              Edit profile
+            </IlButton>
+          )}
+        </IlCard>
 
-        {/* Password Change */}
-        <motion.div variants={fadeInUp}>
-          <Card sx={{ mb: 4 }}>
-            <CardContent>
-              <Box display="flex" alignItems="center" mb={3}>
-                <SecurityIcon sx={{ mr: 2, color: 'secondary.main' }} />
-                <Typography variant="h6" fontWeight="bold">
-                  Security Settings
-                </Typography>
-              </Box>
+        <IlCard className="mb-4">
+          <div className="mb-4 flex items-center gap-2">
+            <SecurityIcon className="text-accent" fontSize="small" />
+            <h2 className="text-base font-semibold text-text-primary">Security</h2>
+          </div>
 
-              {!isChangingPassword ? (
-                <Box>
-                  <Typography variant="body1" color="text.secondary" mb={2}>
-                    Change your password to keep your account secure.
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Last updated: Never
-                  </Typography>
-                </Box>
-              ) : (
-                <Formik
-                  initialValues={{
-                    currentPassword: '',
-                    newPassword: '',
-                    confirmPassword: '',
-                  }}
-                  onSubmit={handlePasswordChange}
-                >
-                  {({ isSubmitting, values, handleChange, handleBlur }) => (
-                    <Form>
-                      <Grid container spacing={3}>
-                        <Grid item xs={12}>
-                          <Field
-                            as={TextField}
-                            name="currentPassword"
-                            label="Current Password"
-                            type="password"
-                            fullWidth
-                            value={values.currentPassword}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            disabled={isSubmitting}
-                          />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <Field
-                            as={TextField}
-                            name="newPassword"
-                            label="New Password"
-                            type="password"
-                            fullWidth
-                            value={values.newPassword}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            disabled={isSubmitting}
-                            helperText="Must be at least 8 characters long"
-                          />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                          <Field
-                            as={TextField}
-                            name="confirmPassword"
-                            label="Confirm New Password"
-                            type="password"
-                            fullWidth
-                            value={values.confirmPassword}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            disabled={isSubmitting}
-                          />
-                        </Grid>
-                        <Grid item xs={12}>
-                          <Box display="flex" gap={2}>
-                            <Button
-                              type="submit"
-                              variant="contained"
-                              disabled={isSubmitting}
-                              startIcon={<SaveIcon />}
-                            >
-                              Change Password
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outlined"
-                              onClick={() => setIsChangingPassword(false)}
-                              disabled={isSubmitting}
-                              startIcon={<CancelIcon />}
-                            >
-                              Cancel
-                            </Button>
-                          </Box>
-                        </Grid>
-                      </Grid>
-                    </Form>
-                  )}
-                </Formik>
+          {!isChangingPassword ? (
+            <div>
+              <p className="text-sm text-text-secondary">
+                Change your password to keep your account secure.
+              </p>
+              <p className="mt-1 text-xs text-text-tertiary">Last updated: Never</p>
+            </div>
+          ) : (
+            <Formik
+              initialValues={{ currentPassword: '', newPassword: '', confirmPassword: '' }}
+              onSubmit={handlePasswordChange}
+            >
+              {({ isSubmitting, values, handleChange, handleBlur }) => (
+                <Form className="flex flex-col gap-4">
+                  <Field
+                    as={TextField}
+                    name="currentPassword"
+                    label="Current password"
+                    type="password"
+                    fullWidth
+                    value={values.currentPassword}
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    disabled={isSubmitting}
+                  />
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <Field
+                      as={TextField}
+                      name="newPassword"
+                      label="New password"
+                      type="password"
+                      fullWidth
+                      value={values.newPassword}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      disabled={isSubmitting}
+                      helperText="Must be at least 8 characters"
+                    />
+                    <Field
+                      as={TextField}
+                      name="confirmPassword"
+                      label="Confirm new password"
+                      type="password"
+                      fullWidth
+                      value={values.confirmPassword}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <IlButton type="submit" size="sm" disabled={isSubmitting}>
+                      <SaveIcon fontSize="small" />
+                      Change password
+                    </IlButton>
+                    <IlButton
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setIsChangingPassword(false)}
+                      disabled={isSubmitting}
+                    >
+                      <CancelIcon fontSize="small" />
+                      Cancel
+                    </IlButton>
+                  </div>
+                </Form>
               )}
-            </CardContent>
+            </Formik>
+          )}
 
-            {!isChangingPassword && (
-              <CardActions>
-                <Button onClick={() => setIsChangingPassword(true)} startIcon={<SecurityIcon />}>
-                  Change Password
-                </Button>
-              </CardActions>
-            )}
-          </Card>
-        </motion.div>
+          {!isChangingPassword && (
+            <IlButton
+              variant="ghost"
+              size="sm"
+              className="mt-4"
+              onClick={() => setIsChangingPassword(true)}
+            >
+              <SecurityIcon fontSize="small" />
+              Change password
+            </IlButton>
+          )}
+        </IlCard>
 
-        {/* Account Actions */}
-        <motion.div variants={fadeInUp}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" fontWeight="bold" mb={3}>
-                Account Actions
-              </Typography>
+        <IlCard>
+          <h2 className="mb-4 text-base font-semibold text-text-primary">Account actions</h2>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Button variant="outlined" fullWidth onClick={logout} startIcon={<LogoutIcon />}>
-                    Sign Out
-                  </Button>
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Button variant="outlined" color="error" fullWidth onClick={handleDeleteAccount}>
-                    Delete Account
-                  </Button>
-                </Grid>
-              </Grid>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <IlButton variant="secondary" onClick={logout}>
+              <LogoutIcon fontSize="small" />
+              Sign out
+            </IlButton>
+            <IlButton variant="danger" onClick={handleDeleteAccount}>
+              Delete account
+            </IlButton>
+          </div>
 
-              <Divider sx={{ my: 3 }} />
+          <div className="my-4 h-px bg-border-default" />
 
-              <Typography variant="body2" color="text.secondary">
-                <strong>Delete Account:</strong> Once you delete your account, there is no going
-                back. Please be certain. All your workout data will be permanently removed.
-              </Typography>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </motion.div>
-    </Container>
+          <p className="text-xs text-text-tertiary">
+            Deleting your account is permanent and removes all your workout data. This cannot be
+            undone.
+          </p>
+        </IlCard>
+      </div>
+    </>
   );
 }

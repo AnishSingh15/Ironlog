@@ -280,6 +280,15 @@ jobs:
           timeout 60 bash -c 'until curl -f http://localhost:3001/health; do sleep 2; done'
           timeout 60 bash -c 'until curl -f http://localhost:3000; do sleep 2; done'
 
+      - name: Seed E2E test user
+        run: |
+          # e2e/*.spec.ts log in as this fixed account, but nothing ever created it -
+          # every dashboard/history/profile test timed out waiting for the post-login
+          # redirect because login itself failed with invalid credentials.
+          curl -f -X POST http://localhost:3001/api/v1/auth/register \
+            -H "Content-Type: application/json" \
+            -d '{"name":"Admin","email":"admin@ironlog.com","password":"admin123"}'
+
       - name: Run E2E tests
         run: pnpm turbo test:e2e
         env:

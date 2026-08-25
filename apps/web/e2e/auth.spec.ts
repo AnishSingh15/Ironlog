@@ -2,7 +2,9 @@ import { expect, test } from './test-utils';
 
 test.describe('Authentication Flow', () => {
   test.beforeEach(async ({ page }) => {
-    // Clear any existing auth state
+    // A fresh Playwright page starts at about:blank, an opaque origin where localStorage
+    // access throws a SecurityError - must navigate to the real origin first.
+    await page.goto('/');
     await page.evaluate(() => {
       localStorage.clear();
       sessionStorage.clear();

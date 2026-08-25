@@ -77,7 +77,7 @@ cat > "$BUILD_DIR/package.json" << 'EOF'
     "jsonwebtoken": "9.0.2",
     "morgan": "1.10.0",
     "openai": "^7.5.0",
-    "zod": "3.22.4",
+    "zod": "^3.22.4",
     "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {

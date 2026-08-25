@@ -176,11 +176,19 @@ jobs:
 
       - name: Build
         run: pnpm build
+        env:
+          # NEXT_PUBLIC_* vars are inlined into the client bundle at build time, not read
+          # at runtime - setting this only in the e2e job's `next start` step (as before)
+          # had no effect on the already-compiled artifact. Must match the e2e job's value.
+          NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
+          # .next is a hidden directory - upload-artifact silently drops hidden files/dirs
+          # unless told otherwise, which was reducing this to a near-empty artifact.
+          include-hidden-files: true
           path: |
             apps/web/.next
             apps/server/dist

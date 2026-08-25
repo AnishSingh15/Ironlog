@@ -62,7 +62,9 @@ export function AppHeader({ title, showWeightToggle = true }: AppHeaderProps) {
           anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         >
           <MenuItem onClick={() => router.push('/profile')}>Profile</MenuItem>
-          <MenuItem onClick={handleLogout}>Log out</MenuItem>
+          <MenuItem onClick={handleLogout} data-testid="logout-button">
+            Log out
+          </MenuItem>
         </Menu>
       </div>
     </Toolbar>

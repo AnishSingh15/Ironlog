@@ -2,6 +2,11 @@
 
 import { AppHeader } from '@/components/AppHeader';
 import { RestTimer } from '@/components/RestTimer';
+import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Metric } from '@/components/ui/Metric';
 import { useWeightUnit } from '@/contexts/WeightUnitContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useTimer } from '@/hooks/useTimer';
@@ -14,12 +19,8 @@ import {
   Delete as DeleteIcon,
   ExpandMore as ExpandMoreIcon,
   FitnessCenter as FitnessCenterIcon,
-  History as HistoryIcon,
-  ExitToApp as LogoutIcon,
   Pause as PauseIcon,
   PlayArrow as PlayIcon,
-  TrendingUp as ProgressIcon,
-  Scale as ScaleIcon,
   Timer as TimerIcon,
 } from '@mui/icons-material';
 import {
@@ -27,51 +28,22 @@ import {
   AccordionDetails,
   AccordionSummary,
   Alert,
-  Avatar,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Chip,
-  Container,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
-  Drawer,
   Fab,
-  Grid,
-  IconButton,
-  LinearProgress,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Paper,
   TextField,
-  Typography,
-  useMediaQuery,
-  useTheme,
 } from '@mui/material';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 const fadeInUp = {
-  initial: { opacity: 0, y: 20 },
+  initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -20 },
-  transition: { duration: 0.3, ease: 'easeOut' },
-};
-
-const staggerContainer = {
-  animate: {
-    transition: {
-      staggerChildren: 0.1,
-    },
-  },
+  exit: { opacity: 0, y: -12 },
+  transition: { duration: 0.2, ease: 'easeOut' },
 };
 
 interface SetInputs {
@@ -81,16 +53,13 @@ interface SetInputs {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const theme = useTheme();
-  const { user, isAuthenticated } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
   const {
     currentWorkout,
-    exercises,
     splitName,
     completionPercentage,
     isLoading: workoutLoading,
     setCurrentWorkout,
-    setExercises,
     setSplitName,
     setCompletionPercentage,
     setLoading: setWorkoutLoading,
@@ -105,7 +74,6 @@ export default function DashboardPage() {
   const [setInputs, setSetInputs] = useState<Record<string, SetInputs>>({});
   const [expandedExercise, setExpandedExercise] = useState<string | false>(false);
   const [error, setError] = useState<string | null>(null);
-  const [profileMenuAnchor, setProfileMenuAnchor] = useState<null | HTMLElement>(null);
   const [isRestDay, setIsRestDay] = useState(false);
   const [showWorkoutModal, setShowWorkoutModal] = useState(false);
   const [availableExercises, setAvailableExercises] = useState<Record<string, any[]>>({});
@@ -115,14 +83,9 @@ export default function DashboardPage() {
   const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const [showRestTimer, setShowRestTimer] = useState(false);
   const [restTimerFor, setRestTimerFor] = useState<string | null>(null);
-  const [restTimerDefaultTime, setRestTimerDefaultTime] = useState(180); // 3 minutes default, but configurable
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  // Weight unit context
-  const { useMetricSystem, toggleWeightUnit, formatWeightDisplay, getWeightUnit } = useWeightUnit();
-
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { useMetricSystem, formatWeightDisplay, getWeightUnit } = useWeightUnit();
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -130,7 +93,6 @@ export default function DashboardPage() {
       return;
     }
 
-    // Load data sequentially to avoid race conditions
     const loadData = async () => {
       await loadTodaysWorkout();
       await loadExercises();
@@ -147,12 +109,11 @@ export default function DashboardPage() {
 
       const response = await api.get('/workouts/today');
 
-      // Handle empty response (no workout today - let user choose)
       if (!response.success || !response.data) {
-        setIsRestDay(false); // Don't automatically set rest day
+        setIsRestDay(false);
         setCurrentWorkout(null);
         setCompletionPercentage(0);
-        setSplitName(''); // Empty split name to show choice
+        setSplitName('');
         setSetInputs({});
         return;
       }
@@ -168,7 +129,6 @@ export default function DashboardPage() {
       setCompletionPercentage(completion);
       setSplitName(split);
 
-      // Initialize set inputs for incomplete sets
       const inputs: Record<string, SetInputs> = {};
       if (workoutDay.setRecords) {
         workoutDay.setRecords.forEach((set: any) => {
@@ -179,23 +139,19 @@ export default function DashboardPage() {
       }
       setSetInputs(inputs);
     } catch (error: any) {
-      // Handle expected 404 (no workout for today) - let user choose
       if (error.response?.status === 404) {
-        // No workout for today - let user choose between workout and rest
         setCurrentWorkout(null);
         setIsRestDay(false);
         setCompletionPercentage(0);
         setSplitName('');
         setSetInputs({});
       } else if (error.response?.status === 204) {
-        // Explicit rest day from server
         setIsRestDay(true);
         setCurrentWorkout(null);
         setCompletionPercentage(0);
         setSplitName('Rest Day');
         setSetInputs({});
       } else {
-        // Log unexpected errors
         console.error("Failed to load today's workout:", error);
         setError("Failed to load today's workout. Please try again.");
       }
@@ -219,7 +175,6 @@ export default function DashboardPage() {
       const response = await api.delete(`/workouts/${currentWorkout.id}`);
 
       if (response.success) {
-        // Reset to initial state - show choice between workout and rest day
         setCurrentWorkout(null);
         setIsRestDay(false);
         setCompletionPercentage(0);
@@ -237,17 +192,14 @@ export default function DashboardPage() {
     }
   };
 
-  // Load available exercises
   const loadExercises = async () => {
     try {
       setIsLoadingExercises(true);
       const response = await api.get('/exercises');
 
-      // Check if response is successful and has data
       if (response.success && response.data) {
         const responseData = response.data as any;
 
-        // Handle the nested data structure properly
         if (responseData.exercisesByMuscleGroup) {
           setAvailableExercises(responseData.exercisesByMuscleGroup);
         } else if (responseData.data?.exercisesByMuscleGroup) {
@@ -270,43 +222,6 @@ export default function DashboardPage() {
     }
   };
 
-  const startWorkout = async (splitKey: 'CHEST_TRI' | 'BACK_BI' | 'LEGS_SHO') => {
-    try {
-      setIsStartingWorkout(true);
-      setError(null);
-
-      const response = await api.post('/workouts/start', { splitKey });
-      const responseData = response.data as any;
-      const {
-        workoutDay,
-        completionPercentage: completion,
-        splitName: split,
-      } = responseData.data || responseData;
-
-      setCurrentWorkout(workoutDay);
-      setCompletionPercentage(completion);
-      setSplitName(split);
-
-      // Initialize set inputs for incomplete sets
-      const inputs: Record<string, SetInputs> = {};
-      if (workoutDay.setRecords) {
-        workoutDay.setRecords.forEach((set: any) => {
-          if (!set.actualWeight || !set.actualReps) {
-            inputs[set.id] = { weight: '', reps: '' };
-          }
-        });
-      }
-      setSetInputs(inputs);
-      setShowWorkoutModal(false);
-    } catch (error: any) {
-      console.error('Failed to start workout:', error);
-      setError('Failed to start workout. Please try again.');
-    } finally {
-      setIsStartingWorkout(false);
-    }
-  };
-
-  // Create custom workout
   const createCustomWorkout = async () => {
     try {
       if (selectedExercises.length === 0) {
@@ -333,7 +248,6 @@ export default function DashboardPage() {
       setCompletionPercentage(completion);
       setSplitName(split);
 
-      // Initialize set inputs for incomplete sets
       const inputs: Record<string, SetInputs> = {};
       if (workoutDay.setRecords) {
         workoutDay.setRecords.forEach((set: any) => {
@@ -354,28 +268,20 @@ export default function DashboardPage() {
     }
   };
 
-  // Toggle exercise selection
   const toggleExerciseSelection = (exerciseId: string) => {
     setSelectedExercises(prev =>
       prev.includes(exerciseId) ? prev.filter(id => id !== exerciseId) : [...prev, exerciseId]
     );
   };
 
-  // Update custom sets for an exercise
   const updateCustomSets = (exerciseId: string, sets: number) => {
-    setCustomSets(prev => ({
-      ...prev,
-      [exerciseId]: sets,
-    }));
+    setCustomSets(prev => ({ ...prev, [exerciseId]: sets }));
   };
 
   const handleSetInputChange = (setId: string, field: 'weight' | 'reps', value: string) => {
     setSetInputs(prev => ({
       ...prev,
-      [setId]: {
-        ...prev[setId],
-        [field]: value,
-      },
+      [setId]: { ...prev[setId], [field]: value } as SetInputs,
     }));
   };
 
@@ -387,11 +293,9 @@ export default function DashboardPage() {
         return;
       }
 
-      // Validate inputs
       const weightValue = parseFloat(inputs.weight);
       const repsValue = parseInt(inputs.reps);
 
-      // Check for invalid numbers
       if (isNaN(weightValue) || isNaN(repsValue)) {
         setError('Please enter valid numbers for weight and reps.');
         return;
@@ -414,7 +318,6 @@ export default function DashboardPage() {
         actualReps: repsValue,
       });
 
-      // Find the set record to update
       const currentSetRecord = currentWorkout?.setRecords?.find(set => set.id === setId);
       if (currentSetRecord) {
         const updatedSetRecord = {
@@ -427,18 +330,15 @@ export default function DashboardPage() {
         markSetCompleted(currentSetRecord.exerciseId, currentSetRecord.setIndex);
       }
 
-      // Remove from setInputs
       setSetInputs(prev => {
         const newInputs = { ...prev };
         delete newInputs[setId];
         return newInputs;
       });
 
-      // Show rest timer after completing a set
       setRestTimerFor(setId);
       setShowRestTimer(true);
 
-      // Update completion percentage and auto-complete if all sets done
       if (currentWorkout && currentWorkout.setRecords) {
         const totalSets = currentWorkout.setRecords.length;
         const completedSets = currentWorkout.setRecords.filter(
@@ -447,11 +347,10 @@ export default function DashboardPage() {
         const newCompletion = Math.round((completedSets / totalSets) * 100);
         setCompletionPercentage(newCompletion);
 
-        // Auto-complete workout if all sets are done
         if (newCompletion === 100) {
           setTimeout(() => {
             handleCompleteWorkout();
-          }, 1500); // Wait 1.5 seconds to show the completion animation
+          }, 1500);
         }
       }
     } catch (error: any) {
@@ -466,7 +365,6 @@ export default function DashboardPage() {
     try {
       await api.patch(`/workouts/${currentWorkout.id}/complete`);
       setError(null);
-      // Reload the workout to reflect completion
       loadTodaysWorkout();
     } catch (error: any) {
       console.error('Failed to complete workout:', error);
@@ -480,12 +378,10 @@ export default function DashboardPage() {
     try {
       setError(null);
 
-      // Get all incomplete sets
       const incompleteSets = currentWorkout.setRecords.filter(
         set => set.actualWeight === null || set.actualReps === null
       );
 
-      // Mark each incomplete set with planned values or default values
       for (const set of incompleteSets) {
         const defaultWeight = set.plannedWeight || 0;
         const defaultReps = set.plannedReps || set.exercise.defaultReps;
@@ -495,7 +391,6 @@ export default function DashboardPage() {
           actualReps: defaultReps,
         });
 
-        // Update the local state
         const updatedSetRecord = {
           ...set,
           actualWeight: defaultWeight,
@@ -506,10 +401,8 @@ export default function DashboardPage() {
         markSetCompleted(set.exerciseId, set.setIndex);
       }
 
-      // Update completion percentage
       setCompletionPercentage(100);
 
-      // Auto-complete workout after a brief delay
       setTimeout(() => {
         handleCompleteWorkout();
       }, 1000);
@@ -525,27 +418,12 @@ export default function DashboardPage() {
   };
 
   const handleAccordionChange =
-    (exerciseId: string) => (event: React.SyntheticEvent, isExpanded: boolean) => {
+    (exerciseId: string) => (_event: React.SyntheticEvent, isExpanded: boolean) => {
       setExpandedExercise(isExpanded ? exerciseId : false);
     };
 
-  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setProfileMenuAnchor(event.currentTarget);
-  };
-
-  const handleProfileMenuClose = () => {
-    setProfileMenuAnchor(null);
-  };
-
-  const handleLogout = () => {
-    handleProfileMenuClose();
-    logout();
-    router.push('/login');
-  };
-
   const handleRestTimerEnd = () => {
-    // Timer finished, we can keep it visible or hide it
-    console.log('Rest timer finished! 💪');
+    // Rest complete - the RestTimer component itself surfaces the finished state.
   };
 
   const handleCloseRestTimer = () => {
@@ -561,38 +439,15 @@ export default function DashboardPage() {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         exit={{ scale: 0 }}
-        style={{
-          position: 'fixed',
-          bottom: 100,
-          right: 20,
-          zIndex: 1000,
-        }}
+        className="fixed bottom-24 right-4 z-40 md:bottom-6"
       >
-        <Fab
-          color="primary"
+        <button
           onClick={isRunning ? stopTimer : resetTimer}
-          sx={{
-            width: 80,
-            height: 80,
-            background:
-              theme.palette.mode === 'dark'
-                ? 'linear-gradient(135deg, #34d399 0%, #10b981 100%)'
-                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-            '&:hover': {
-              background:
-                theme.palette.mode === 'dark'
-                  ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                  : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-            },
-          }}
+          className="flex h-16 w-16 flex-col items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg"
         >
-          <Box textAlign="center">
-            {isRunning ? <PauseIcon /> : <TimerIcon />}
-            <Typography variant="caption" display="block" fontSize="0.6rem">
-              {formatTime(timeElapsed)}
-            </Typography>
-          </Box>
-        </Fab>
+          {isRunning ? <PauseIcon fontSize="small" /> : <TimerIcon fontSize="small" />}
+          <span className="font-mono text-[10px]">{formatTime(timeElapsed)}</span>
+        </button>
       </motion.div>
     );
   };
@@ -606,192 +461,75 @@ export default function DashboardPage() {
     ).length;
 
     return (
-      <motion.div variants={fadeInUp}>
-        <Card
-          sx={{
-            mb: 3,
-            overflow: 'hidden',
-            background:
-              'linear-gradient(135deg, rgba(244, 96, 54, 0.05) 0%, rgba(230, 108, 178, 0.05) 100%)',
-            border: '1px solid rgba(244, 96, 54, 0.1)',
-            boxShadow: '0 8px 32px rgba(244, 96, 54, 0.1)',
-          }}
-        >
-          <CardContent>
-            <Box
-              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}
-            >
-              <Typography
-                variant="h5"
-                fontWeight="bold"
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  background: 'linear-gradient(135deg, #F46036 0%, #E66CB2 100%)',
-                  backgroundClip: 'text',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
+      <motion.div {...fadeInUp}>
+        <Card className="mb-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FitnessCenterIcon className="text-accent" fontSize="small" />
+              <h2 className="text-base font-semibold text-text-primary">Today&apos;s Workout</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge tone="accent">{splitName}</Badge>
+              <button
+                onClick={confirmDeleteWorkout}
+                title="Delete Workout"
+                className="rounded p-1 text-text-tertiary hover:text-danger"
               >
-                <FitnessCenterIcon sx={{ color: '#F46036' }} />
-                Today's Workout
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Chip
-                  label={splitName}
-                  sx={{
-                    background: 'linear-gradient(135deg, #3D9970 0%, #A3B18A 100%)',
-                    color: '#EFE9E7',
-                    fontWeight: 'bold',
-                    border: 'none',
-                  }}
-                />
-                <IconButton
-                  size="small"
-                  onClick={confirmDeleteWorkout}
-                  sx={{
-                    color: 'error.main',
-                    '&:hover': {
-                      backgroundColor: 'rgba(244, 67, 54, 0.1)',
-                    },
-                  }}
-                  title="Delete Workout"
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </Box>
-            </Box>
+                <DeleteIcon fontSize="small" />
+              </button>
+            </div>
+          </div>
 
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Progress: {completedSets}/{totalSets} sets completed ({completionPercentage}%)
-              </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={completionPercentage}
-                sx={{
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: theme.palette.mode === 'dark' ? '#5A5A5A' : '#EAEEEA',
-                  '& .MuiLinearProgress-bar': {
-                    borderRadius: 4,
-                    background: 'linear-gradient(90deg, #3D9970 0%, #A3B18A 100%)',
-                  },
-                }}
-              />
-            </Box>
+          <p className="mb-1.5 text-sm text-text-secondary">
+            {completedSets}/{totalSets} sets completed ({completionPercentage}%)
+          </p>
+          <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-surface-2">
+            <div
+              className="h-full rounded-full bg-accent transition-all"
+              style={{ width: `${completionPercentage}%` }}
+            />
+          </div>
 
-            {/* Mark All Done button - appears when there are incomplete sets */}
-            {completionPercentage < 100 && !currentWorkout.completed && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Button
-                  variant="outlined"
-                  size="large"
-                  onClick={handleMarkAllDone}
-                  startIcon={<CheckIcon />}
-                  sx={{
-                    width: '100%',
-                    py: 1.5,
-                    mb: 2,
-                    fontSize: '1rem',
-                    fontWeight: 'bold',
-                    borderColor: 'primary.main',
-                    color: 'primary.main',
-                    '&:hover': {
-                      backgroundColor: 'primary.main',
-                      color: 'white',
-                      borderColor: 'primary.main',
-                    },
-                    transition: 'all 0.3s ease',
-                  }}
-                >
-                  Mark All Sets as Done
-                </Button>
-              </motion.div>
-            )}
+          {completionPercentage < 100 && !currentWorkout.completed && (
+            <Button variant="secondary" className="mb-2 w-full" onClick={handleMarkAllDone}>
+              <CheckIcon fontSize="small" />
+              Mark all sets as done
+            </Button>
+          )}
 
-            {completionPercentage === 100 && !currentWorkout.completed && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={handleCompleteWorkout}
-                  startIcon={<CheckIcon />}
-                  sx={{
-                    width: '100%',
-                    py: 1.5,
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold',
-                    background: 'linear-gradient(135deg, #3D9970 0%, #A3B18A 100%)',
-                    color: '#EFE9E7',
-                    border: 'none',
-                    boxShadow: '0 6px 20px rgba(61, 153, 112, 0.3)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #2E7A5A 0%, #8FA074 100%)',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 8px 25px rgba(61, 153, 112, 0.4)',
-                    },
-                    transition: 'all 0.3s ease',
-                  }}
-                >
-                  Complete Workout
-                </Button>
-              </motion.div>
-            )}
+          {completionPercentage === 100 && !currentWorkout.completed && (
+            <Button className="w-full" onClick={handleCompleteWorkout}>
+              <CheckIcon fontSize="small" />
+              Complete workout
+            </Button>
+          )}
 
-            {currentWorkout.completed && (
-              <motion.div {...fadeInUp}>
-                <Alert severity="success" sx={{ mb: 2 }}>
-                  🎉 Workout completed! Great job!
-                </Alert>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  size="large"
-                  onClick={async () => {
-                    try {
-                      // Unmark the workout as completed to allow adding more sets
-                      await api.patch(`/workouts/${currentWorkout.id}/uncomplete`);
-
-                      // Refresh the workout data
-                      const updatedWorkout = await api.getTodayWorkout();
-                      const updatedData = updatedWorkout.data as any;
-                      setCurrentWorkout(updatedData.data || updatedData);
-
-                      console.log('✅ Workout session restarted');
-                    } catch (error) {
-                      console.error('❌ Failed to restart workout:', error);
-                      // Fallback: just mark as not completed locally
-                      if (currentWorkout) {
-                        setCurrentWorkout({ ...currentWorkout, completed: false });
-                      }
+          {currentWorkout.completed && (
+            <div>
+              <Alert severity="success" className="!mb-3 !rounded-lg">
+                Workout completed. Great job.
+              </Alert>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={async () => {
+                  try {
+                    await api.patch(`/workouts/${currentWorkout.id}/uncomplete`);
+                    const updatedWorkout = await api.getTodayWorkout();
+                    const updatedData = updatedWorkout.data as any;
+                    setCurrentWorkout(updatedData.data || updatedData);
+                  } catch (error) {
+                    console.error('Failed to restart workout:', error);
+                    if (currentWorkout) {
+                      setCurrentWorkout({ ...currentWorkout, completed: false });
                     }
-                  }}
-                  sx={{
-                    height: 48,
-                    borderColor: 'primary.main',
-                    color: 'primary.main',
-                    '&:hover': {
-                      borderColor: 'primary.dark',
-                      backgroundColor: 'primary.main',
-                      color: 'white',
-                    },
-                  }}
-                >
-                  Continue Training
-                </Button>
-              </motion.div>
-            )}
-          </CardContent>
+                  }
+                }}
+              >
+                Continue training
+              </Button>
+            </div>
+          )}
         </Card>
       </motion.div>
     );
@@ -800,387 +538,131 @@ export default function DashboardPage() {
   const renderExercises = () => {
     if (!currentWorkout || !currentWorkout.setRecords) return null;
 
-    // Group sets by exercise
     const exerciseGroups = currentWorkout.setRecords.reduce((acc: any, set: any) => {
       const exerciseId = set.exercise.id;
       if (!acc[exerciseId]) {
-        acc[exerciseId] = {
-          exercise: set.exercise,
-          sets: [],
-        };
+        acc[exerciseId] = { exercise: set.exercise, sets: [] };
       }
       acc[exerciseId].sets.push(set);
       return acc;
     }, {});
 
     return (
-      <motion.div variants={staggerContainer}>
-        {Object.entries(exerciseGroups).map(([exerciseId, group]: [string, any]) => (
-          <motion.div key={exerciseId} variants={fadeInUp}>
+      <div>
+        {Object.entries(exerciseGroups).map(([exerciseId, group]: [string, any]) => {
+          const allDone = group.sets.every(
+            (s: any) => s.actualWeight !== null && s.actualReps !== null
+          );
+          const doneCount = group.sets.filter(
+            (s: any) => s.actualWeight !== null && s.actualReps !== null
+          ).length;
+
+          return (
             <Accordion
+              key={exerciseId}
               expanded={expandedExercise === exerciseId}
               onChange={handleAccordionChange(exerciseId)}
-              sx={{
-                mb: 2,
-                borderRadius: 2,
-                overflow: 'hidden',
-                border: `1px solid ${theme.palette.divider}`,
-                '&:before': { display: 'none' },
-                boxShadow:
-                  theme.palette.mode === 'dark'
-                    ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
-                    : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-              }}
+              className="!mb-3 !rounded-xl !border !border-border-default !shadow-none before:!hidden"
+              disableGutters
             >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                sx={{
-                  backgroundColor:
-                    theme.palette.mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.05)'
-                      : 'rgba(0, 0, 0, 0.02)',
-                  borderBottom: `1px solid ${theme.palette.divider}`,
-                  '&:hover': {
-                    backgroundColor:
-                      theme.palette.mode === 'dark'
-                        ? 'rgba(255, 255, 255, 0.08)'
-                        : 'rgba(0, 0, 0, 0.04)',
-                  },
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" fontWeight="bold">
-                      {group.exercise.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {group.exercise.muscleGroup} • {group.sets.length} sets
-                    </Typography>
-                  </Box>
-                  <Chip
-                    label={`${group.sets.filter((s: any) => s.actualWeight !== null && s.actualReps !== null).length}/${group.sets.length}`}
-                    size="small"
-                    color={
-                      group.sets.every((s: any) => s.actualWeight !== null && s.actualReps !== null)
-                        ? 'success'
-                        : 'default'
-                    }
-                    sx={{ mr: 1 }}
-                  />
-                </Box>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                <div className="flex w-full items-center justify-between pr-2">
+                  <div>
+                    <p className="text-sm font-semibold text-text-primary">{group.exercise.name}</p>
+                    <p className="text-xs text-text-tertiary">
+                      {group.exercise.muscleGroup} &middot; {group.sets.length} sets
+                    </p>
+                  </div>
+                  <Badge tone={allDone ? 'success' : 'neutral'}>
+                    {doneCount}/{group.sets.length}
+                  </Badge>
+                </div>
               </AccordionSummary>
-              <AccordionDetails sx={{ p: 3 }}>
-                <Grid container spacing={2}>
-                  {group.sets.map((set: any, index: number) => (
-                    <Grid item xs={12} key={set.id}>
-                      <Paper
-                        sx={{
-                          p: 2,
-                          backgroundColor:
-                            set.actualWeight !== null && set.actualReps !== null
-                              ? theme.palette.mode === 'dark'
-                                ? 'rgba(52, 211, 153, 0.1)'
-                                : 'rgba(16, 185, 129, 0.1)'
-                              : theme.palette.background.default,
-                          border:
-                            set.actualWeight !== null && set.actualReps !== null
-                              ? `1px solid ${theme.palette.success.main}`
-                              : `1px solid ${theme.palette.divider}`,
-                          borderRadius: 2,
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            mb: 2,
-                          }}
-                        >
-                          <Typography variant="subtitle1" fontWeight="bold">
-                            Set {index + 1}
-                          </Typography>
-                          {set.actualWeight !== null && set.actualReps !== null ? (
-                            <Chip
-                              icon={<CheckIcon />}
-                              label="Completed"
-                              color="success"
-                              size="small"
-                            />
-                          ) : (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              startIcon={<PlayIcon />}
-                              onClick={() => handleStartSet(set.id)}
-                              disabled={currentSet === set.id && isRunning}
-                            >
-                              {currentSet === set.id && isRunning ? 'Active' : 'Start'}
-                            </Button>
-                          )}
-                        </Box>
-
-                        {set.actualWeight !== null && set.actualReps !== null ? (
-                          <Box>
-                            <Typography variant="body1">
-                              <strong>{formatWeightDisplay(set.actualWeight)}</strong> ×{' '}
-                              <strong>{set.actualReps} reps</strong>
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              Target: {set.plannedReps} reps
-                            </Typography>
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              startIcon={<TimerIcon />}
-                              onClick={() => {
-                                setRestTimerFor(set.id);
-                                setShowRestTimer(true);
-                              }}
-                              sx={{ mt: 1 }}
-                            >
-                              Rest Timer
-                            </Button>
-                          </Box>
+              <AccordionDetails className="!flex !flex-col !gap-3 !border-t !border-border-default !p-4">
+                {group.sets.map((set: any, index: number) => {
+                  const done = set.actualWeight !== null && set.actualReps !== null;
+                  return (
+                    <div
+                      key={set.id}
+                      className={
+                        done
+                          ? 'rounded-lg border border-success/30 bg-success/5 p-3'
+                          : 'rounded-lg border border-border-default p-3'
+                      }
+                    >
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-sm font-semibold text-text-primary">Set {index + 1}</p>
+                        {done ? (
+                          <Badge tone="success">Completed</Badge>
                         ) : (
-                          <Grid container spacing={2} alignItems="center">
-                            <Grid item xs={4}>
-                              <TextField
-                                label={`Weight (${getWeightUnit()})`}
-                                type="number"
-                                value={setInputs[set.id]?.weight || ''}
-                                onChange={e =>
-                                  handleSetInputChange(set.id, 'weight', e.target.value)
-                                }
-                                size="small"
-                                fullWidth
-                              />
-                            </Grid>
-                            <Grid item xs={4}>
-                              <TextField
-                                label="Reps"
-                                type="number"
-                                value={setInputs[set.id]?.reps || ''}
-                                onChange={e => handleSetInputChange(set.id, 'reps', e.target.value)}
-                                size="small"
-                                fullWidth
-                              />
-                            </Grid>
-                            <Grid item xs={4}>
-                              <Button
-                                variant="contained"
-                                onClick={() => handleSetSubmit(set.id)}
-                                disabled={
-                                  !setInputs[set.id] ||
-                                  setInputs[set.id]?.weight === '' ||
-                                  setInputs[set.id]?.reps === ''
-                                }
-                                sx={{ width: '100%' }}
-                              >
-                                Log Set
-                              </Button>
-                            </Grid>
-                            <Grid item xs={12}>
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                startIcon={<TimerIcon />}
-                                onClick={() => {
-                                  setRestTimerFor(set.id);
-                                  setShowRestTimer(true);
-                                }}
-                                sx={{ width: '100%', mt: 1 }}
-                              >
-                                Start Rest Timer
-                              </Button>
-                            </Grid>
-                          </Grid>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            disabled={currentSet === set.id && isRunning}
+                            onClick={() => handleStartSet(set.id)}
+                          >
+                            <PlayIcon fontSize="small" />
+                            {currentSet === set.id && isRunning ? 'Active' : 'Start'}
+                          </Button>
                         )}
-                      </Paper>
-                    </Grid>
-                  ))}
-                </Grid>
+                      </div>
+
+                      {done ? (
+                        <div>
+                          <Metric value={formatWeightDisplay(set.actualWeight)} unit={set.actualReps + ' reps'} />
+                          <p className="mt-1 text-xs text-text-tertiary">Target: {set.plannedReps} reps</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() => {
+                              setRestTimerFor(set.id);
+                              setShowRestTimer(true);
+                            }}
+                          >
+                            <TimerIcon fontSize="small" />
+                            Rest timer
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-3 items-end gap-2">
+                          <TextField
+                            label={`Weight (${getWeightUnit()})`}
+                            type="number"
+                            size="small"
+                            value={setInputs[set.id]?.weight || ''}
+                            onChange={e => handleSetInputChange(set.id, 'weight', e.target.value)}
+                          />
+                          <TextField
+                            label="Reps"
+                            type="number"
+                            size="small"
+                            value={setInputs[set.id]?.reps || ''}
+                            onChange={e => handleSetInputChange(set.id, 'reps', e.target.value)}
+                          />
+                          <Button
+                            size="sm"
+                            disabled={
+                              !setInputs[set.id] ||
+                              setInputs[set.id]?.weight === '' ||
+                              setInputs[set.id]?.reps === ''
+                            }
+                            onClick={() => handleSetSubmit(set.id)}
+                          >
+                            Log
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </AccordionDetails>
             </Accordion>
-          </motion.div>
-        ))}
-      </motion.div>
+          );
+        })}
+      </div>
     );
   };
-
-  const renderNavigationDrawer = () => (
-    <Drawer
-      anchor="right"
-      open={drawerOpen}
-      onClose={() => setDrawerOpen(false)}
-      PaperProps={{
-        sx: {
-          width: 280,
-          background:
-            theme.palette.mode === 'dark'
-              ? 'linear-gradient(135deg, #424242 0%, #616161 100%)'
-              : 'linear-gradient(135deg, #F46036 0%, #E66CB2 100%)',
-          color: theme.palette.mode === 'dark' ? '#fff' : 'white',
-          boxShadow: theme.shadows[16],
-        },
-      }}
-    >
-      <Box sx={{ p: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, textAlign: 'center' }}>
-          🏋️ IronLog
-        </Typography>
-        <Divider sx={{ bgcolor: 'rgba(255,255,255,0.3)', mb: 2 }} />
-      </Box>
-
-      <List sx={{ px: 1 }}>
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => {
-              router.push('/history');
-              setDrawerOpen(false);
-            }}
-            sx={{
-              borderRadius: 2,
-              mb: 1,
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-            }}
-          >
-            <ListItemIcon>
-              <HistoryIcon sx={{ color: 'white' }} />
-            </ListItemIcon>
-            <ListItemText primary="Workout History" />
-          </ListItemButton>
-        </ListItem>
-
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => {
-              router.push('/progress');
-              setDrawerOpen(false);
-            }}
-            sx={{
-              borderRadius: 2,
-              mb: 1,
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-            }}
-          >
-            <ListItemIcon>
-              <ProgressIcon sx={{ color: 'white' }} />
-            </ListItemIcon>
-            <ListItemText primary="Progress & Analytics" />
-          </ListItemButton>
-        </ListItem>
-
-        {!currentWorkout && !isRestDay && (
-          <ListItem disablePadding>
-            <ListItemButton
-              onClick={() => {
-                setShowWorkoutModal(true);
-                setDrawerOpen(false);
-              }}
-              sx={{
-                borderRadius: 2,
-                mb: 1,
-                bgcolor: 'rgba(255,255,255,0.2)',
-                border: '1px solid rgba(255,255,255,0.3)',
-                '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
-              }}
-            >
-              <ListItemIcon>
-                <FitnessCenterIcon sx={{ color: 'white' }} />
-              </ListItemIcon>
-              <ListItemText primary="Start Workout" />
-            </ListItemButton>
-          </ListItem>
-        )}
-      </List>
-
-      <Box sx={{ flexGrow: 1 }} />
-
-      <Divider sx={{ bgcolor: 'rgba(255,255,255,0.3)', mx: 2 }} />
-
-      <List sx={{ px: 1, pb: 2 }}>
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => {
-              // Profile menu functionality would go here
-              setDrawerOpen(false);
-            }}
-            sx={{
-              borderRadius: 2,
-              mt: 1,
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-            }}
-          >
-            <ListItemIcon>
-              <Avatar
-                sx={{
-                  bgcolor: '#EFE9E7',
-                  color: '#F46036',
-                  fontWeight: 600,
-                  width: 24,
-                  height: 24,
-                  fontSize: '0.8rem',
-                }}
-              >
-                {user?.email?.[0]?.toUpperCase() || 'U'}
-              </Avatar>
-            </ListItemIcon>
-            <ListItemText
-              primary={user?.email || 'User'}
-              secondary="Profile & Settings"
-              secondaryTypographyProps={{
-                sx: { color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem' },
-              }}
-            />
-          </ListItemButton>
-        </ListItem>
-
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => {
-              logout();
-              setDrawerOpen(false);
-            }}
-            data-testid="logout-button"
-            sx={{
-              borderRadius: 2,
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-            }}
-          >
-            <ListItemIcon>
-              <LogoutIcon sx={{ color: 'white' }} />
-            </ListItemIcon>
-            <ListItemText primary="Logout" />
-          </ListItemButton>
-        </ListItem>
-
-        <ListItem disablePadding>
-          <ListItemButton
-            onClick={() => {
-              toggleWeightUnit();
-              setDrawerOpen(false);
-            }}
-            sx={{
-              borderRadius: 2,
-              '&:hover': { bgcolor: 'rgba(255,255,255,0.1)' },
-            }}
-          >
-            <ListItemIcon>
-              <ScaleIcon sx={{ color: 'white' }} />
-            </ListItemIcon>
-            <ListItemText
-              primary={`Switch to ${useMetricSystem ? 'Pounds' : 'Kilograms'}`}
-              secondary={`Currently: ${useMetricSystem ? 'kg' : 'lbs'}`}
-              secondaryTypographyProps={{
-                sx: { color: 'rgba(255,255,255,0.7)', fontSize: '0.75rem' },
-              }}
-            />
-          </ListItemButton>
-        </ListItem>
-      </List>
-    </Drawer>
-  );
 
   if (!isAuthenticated) {
     return null;
@@ -1188,343 +670,189 @@ export default function DashboardPage() {
 
   return (
     <>
-      <AppHeader title="Dashboard" />
-      <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
-        <Container maxWidth="lg" sx={{ py: 3, pb: 12 }}>
-          <motion.div initial="initial" animate="animate" variants={staggerContainer}>
-            {error && (
-              <motion.div variants={fadeInUp}>
-                <Alert severity="error" sx={{ mb: 3 }}>
-                  {error}
-                </Alert>
-              </motion.div>
-            )}
+      <AppHeader title="Workout" />
+      <div className="min-h-screen bg-canvas pb-24 md:pb-6">
+        <div className="mx-auto max-w-2xl px-4 py-5">
+          {error && (
+            <Alert severity="error" className="!mb-4 !rounded-lg" onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
 
-            {workoutLoading ? (
-              <motion.div variants={fadeInUp}>
-                <Card>
-                  <CardContent sx={{ textAlign: 'center', py: 8 }}>
-                    <Typography variant="h6" color="text.secondary">
-                      Loading your workout...
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ) : currentWorkout ? (
-              <>
-                {renderWorkoutSummary()}
-                {renderExercises()}
-              </>
-            ) : isRestDay ? (
-              <motion.div variants={fadeInUp}>
-                <Card>
-                  <CardContent sx={{ textAlign: 'center', py: 8 }}>
-                    <FitnessCenterIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                    <Typography variant="h5" gutterBottom>
-                      Rest Day
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary">
-                      Take a well-deserved break! Recovery is just as important as training.
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ) : (
-              <motion.div variants={fadeInUp}>
-                <Card>
-                  <CardContent sx={{ textAlign: 'center', py: 8 }}>
-                    <FitnessCenterIcon sx={{ fontSize: 64, color: 'primary.main', mb: 3 }} />
-                    <Typography variant="h5" gutterBottom>
-                      Ready to Start Your Workout?
-                    </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-                      No workout scheduled for today. Create your custom workout by selecting
-                      exercises!
-                    </Typography>
-                    <Button
-                      variant="contained"
-                      size="large"
-                      onClick={() => setShowWorkoutModal(true)}
-                      startIcon={<FitnessCenterIcon />}
-                      sx={{
-                        py: 2,
-                        px: 4,
-                        fontSize: '1.1rem',
-                        borderRadius: 3,
-                        background: 'linear-gradient(135deg, #F46036 0%, #E66CB2 100%)',
-                        '&:hover': {
-                          background: 'linear-gradient(135deg, #E55030 0%, #D45BA0 100%)',
-                        },
-                      }}
-                    >
-                      Start Workout
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </motion.div>
-        </Container>
+          {workoutLoading ? (
+            <Card className="py-12 text-center">
+              <p className="text-sm text-text-secondary">Loading your workout...</p>
+            </Card>
+          ) : currentWorkout ? (
+            <>
+              {renderWorkoutSummary()}
+              {renderExercises()}
+            </>
+          ) : isRestDay ? (
+            <EmptyState
+              icon={<FitnessCenterIcon fontSize="large" />}
+              title="Rest day"
+              description="Take a well-deserved break. Recovery is just as important as training."
+            />
+          ) : (
+            <EmptyState
+              icon={<FitnessCenterIcon fontSize="large" />}
+              title="No workout scheduled today"
+              description="Build a session by selecting exercises."
+              action={<Button onClick={() => setShowWorkoutModal(true)}>Start workout</Button>}
+            />
+          )}
+        </div>
 
         <AnimatePresence>{renderTimerFab()}</AnimatePresence>
 
-        {/* Custom Workout Selection Modal */}
         <Dialog
           open={showWorkoutModal}
           onClose={() => setShowWorkoutModal(false)}
           maxWidth="md"
           fullWidth
-          PaperProps={{
-            sx: {
-              background: 'linear-gradient(135deg, #F46036 0%, #E66CB2 100%)',
-              color: 'white',
-              borderRadius: 3,
-              maxHeight: '90vh',
-            },
-          }}
         >
           <DialogTitle>
-            <Typography
-              variant="h4"
-              component="div"
-              sx={{ fontWeight: 'bold', textAlign: 'center' }}
-            >
-              🏋️ Create Your Workout
-            </Typography>
-            <Typography variant="body1" sx={{ textAlign: 'center', mt: 1, opacity: 0.9 }}>
-              Select exercises for today's session
-            </Typography>
+            <p className="text-lg font-semibold text-text-primary">Create your workout</p>
+            <p className="text-sm font-normal text-text-secondary">
+              Select exercises for today&apos;s session
+            </p>
           </DialogTitle>
-          <DialogContent sx={{ maxHeight: '60vh', overflowY: 'auto' }}>
+          <DialogContent dividers>
             {isLoadingExercises ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <Typography variant="body2" sx={{ opacity: 0.8 }}>
-                  Loading exercises...
-                </Typography>
-              </Box>
+              <p className="py-8 text-center text-sm text-text-secondary">Loading exercises...</p>
             ) : (
-              <Box sx={{ mt: 2 }}>
+              <div className="flex flex-col gap-5">
                 {Object.entries(availableExercises).map(([muscleGroup, exercises]) => (
-                  <Box key={muscleGroup} sx={{ mb: 3 }}>
-                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                      💪 {muscleGroup}
-                    </Typography>
-                    <Grid container spacing={2}>
+                  <div key={muscleGroup}>
+                    <p className="mb-2 text-sm font-semibold text-text-primary">{muscleGroup}</p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {exercises.map((exercise: any) => {
                         const isSelected = selectedExercises.includes(exercise.id);
                         const customSetCount = customSets[exercise.id] || exercise.defaultSets;
 
                         return (
-                          <Grid item xs={12} sm={6} key={exercise.id}>
-                            <Paper
-                              onClick={() => toggleExerciseSelection(exercise.id)}
-                              sx={{
-                                p: 2,
-                                cursor: 'pointer',
-                                backgroundColor: isSelected
-                                  ? 'rgba(255,255,255,0.3)'
-                                  : 'rgba(255,255,255,0.1)',
-                                border: isSelected
-                                  ? '2px solid rgba(255,255,255,0.8)'
-                                  : '1px solid rgba(255,255,255,0.3)',
-                                borderRadius: 2,
-                                transition: 'all 0.2s ease',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(255,255,255,0.2)',
-                                  transform: 'translateY(-2px)',
-                                },
-                              }}
-                            >
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                }}
-                              >
-                                <Box>
-                                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>
-                                    {exercise.name}
-                                  </Typography>
-                                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
-                                    {exercise.defaultReps} reps × {customSetCount} sets
-                                  </Typography>
-                                </Box>
-                                {isSelected && <CheckIcon sx={{ color: 'white' }} />}
-                              </Box>
+                          <div
+                            key={exercise.id}
+                            onClick={() => toggleExerciseSelection(exercise.id)}
+                            className={
+                              isSelected
+                                ? 'cursor-pointer rounded-lg border-2 border-accent bg-accent/10 p-3'
+                                : 'cursor-pointer rounded-lg border border-border-default p-3 hover:border-border-strong'
+                            }
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-semibold text-text-primary">
+                                  {exercise.name}
+                                </p>
+                                <p className="text-xs text-text-tertiary">
+                                  {exercise.defaultReps} reps x {customSetCount} sets
+                                </p>
+                              </div>
+                              {isSelected && <CheckIcon fontSize="small" className="text-accent" />}
+                            </div>
 
-                              {isSelected && (
-                                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Typography variant="caption" sx={{ minWidth: '40px' }}>
-                                    Sets:
-                                  </Typography>
-                                  <TextField
-                                    size="small"
-                                    type="number"
-                                    value={customSetCount}
-                                    onChange={e =>
-                                      updateCustomSets(
-                                        exercise.id,
-                                        parseInt(e.target.value) || exercise.defaultSets
-                                      )
-                                    }
-                                    onClick={e => e.stopPropagation()}
-                                    inputProps={{ min: 1, max: 10 }}
-                                    sx={{
-                                      width: '80px',
-                                      '& .MuiOutlinedInput-root': {
-                                        backgroundColor: 'rgba(255,255,255,0.2)',
-                                        '& fieldset': {
-                                          borderColor: 'rgba(255,255,255,0.5)',
-                                        },
-                                        '&:hover fieldset': {
-                                          borderColor: 'rgba(255,255,255,0.7)',
-                                        },
-                                        '&.Mui-focused fieldset': {
-                                          borderColor: 'white',
-                                        },
-                                      },
-                                      '& .MuiInputBase-input': {
-                                        color: 'white',
-                                        textAlign: 'center',
-                                      },
-                                    }}
-                                  />
-                                </Box>
-                              )}
-                            </Paper>
-                          </Grid>
+                            {isSelected && (
+                              <div className="mt-2 flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                                <span className="text-xs text-text-tertiary">Sets:</span>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  value={customSetCount}
+                                  onChange={e =>
+                                    updateCustomSets(
+                                      exercise.id,
+                                      parseInt(e.target.value) || exercise.defaultSets
+                                    )
+                                  }
+                                  inputProps={{ min: 1, max: 10 }}
+                                  className="w-20"
+                                />
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
-                    </Grid>
-                  </Box>
+                    </div>
+                  </div>
                 ))}
-              </Box>
+              </div>
             )}
           </DialogContent>
-          <DialogActions sx={{ p: 3, flexDirection: 'column', gap: 2 }}>
+          <DialogActions className="!flex-col !items-stretch !gap-2 !p-4">
             {selectedExercises.length > 0 && (
-              <Typography variant="body2" sx={{ opacity: 0.9, textAlign: 'center' }}>
-                {selectedExercises.length} exercise{selectedExercises.length !== 1 ? 's' : ''}{' '}
-                selected
-              </Typography>
+              <p className="text-center text-xs text-text-tertiary">
+                {selectedExercises.length} exercise{selectedExercises.length !== 1 ? 's' : ''} selected
+              </p>
             )}
-            <Box sx={{ display: 'flex', gap: 2, width: '100%' }}>
+            <div className="flex gap-2">
               <Button
+                variant="secondary"
+                className="flex-1"
                 onClick={() => setShowWorkoutModal(false)}
                 disabled={isStartingWorkout}
-                sx={{
-                  color: 'white',
-                  borderColor: 'rgba(255,255,255,0.5)',
-                  '&:hover': { borderColor: 'white' },
-                }}
-                variant="outlined"
-                fullWidth
               >
                 Cancel
               </Button>
               <Button
+                className="flex-1"
                 onClick={createCustomWorkout}
                 disabled={isStartingWorkout || selectedExercises.length === 0}
-                variant="contained"
-                fullWidth
-                sx={{
-                  bgcolor: 'rgba(255,255,255,0.2)',
-                  '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
-                  '&:disabled': { bgcolor: 'rgba(255,255,255,0.1)' },
-                }}
               >
-                {isStartingWorkout ? 'Creating Workout...' : 'Start Workout'}
+                {isStartingWorkout ? 'Creating...' : 'Start workout'}
               </Button>
-            </Box>
+            </div>
           </DialogActions>
         </Dialog>
 
-        {/* Navigation Drawer for Mobile */}
-        {isMobile && renderNavigationDrawer()}
-
-        {/* Delete Confirmation Dialog */}
-        <Dialog
-          open={showDeleteDialog}
-          onClose={() => setShowDeleteDialog(false)}
-          aria-labelledby="delete-dialog-title"
-          aria-describedby="delete-dialog-description"
-        >
-          <DialogTitle id="delete-dialog-title">Delete Workout?</DialogTitle>
+        <Dialog open={showDeleteDialog} onClose={() => setShowDeleteDialog(false)}>
+          <DialogTitle>Delete workout?</DialogTitle>
           <DialogContent>
-            <Typography id="delete-dialog-description">
-              Are you sure you want to delete this workout? This action cannot be undone. You'll
-              return to the main screen where you can choose to start a new workout or take a rest
-              day.
-            </Typography>
+            <p className="text-sm text-text-secondary">
+              This can&apos;t be undone. You&apos;ll return to the choice between starting a new
+              workout or taking a rest day.
+            </p>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setShowDeleteDialog(false)} color="inherit">
+            <Button variant="ghost" onClick={() => setShowDeleteDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={deleteWorkout} color="error" variant="contained">
-              Delete Workout
+            <Button variant="danger" onClick={deleteWorkout}>
+              Delete workout
             </Button>
           </DialogActions>
         </Dialog>
 
-        {/* Rest Timer */}
-        <RestTimer
-          isVisible={showRestTimer}
-          onTimerEnd={handleRestTimerEnd}
-          defaultTime={restTimerDefaultTime}
-          onClose={handleCloseRestTimer}
-        />
-
-        {/* Rest Timer Overlay */}
         {showRestTimer && (
-          <Box
-            sx={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 9999,
-              p: 2,
-            }}
+          <div
+            className="fixed inset-0 z-[999] flex items-center justify-center bg-black/50 p-4"
             onClick={handleCloseRestTimer}
           >
-            <Box onClick={e => e.stopPropagation()}>
+            <div onClick={e => e.stopPropagation()}>
               <RestTimer
                 isVisible={showRestTimer}
                 onTimerEnd={handleRestTimerEnd}
                 onClose={handleCloseRestTimer}
-                defaultTime={180} // 3 minutes default
+                defaultTime={180}
               />
-            </Box>
-          </Box>
+            </div>
+          </div>
         )}
 
-        {/* Quick Rest Timer FAB */}
         {currentWorkout && !showRestTimer && (
           <Fab
-            color="primary"
             aria-label="rest timer"
-            sx={{
-              position: 'fixed',
-              bottom: 16,
-              right: 16,
-              zIndex: 1000,
-            }}
             onClick={() => {
               setRestTimerFor('quick-timer');
               setShowRestTimer(true);
             }}
+            className="!fixed !bottom-24 !right-4 !z-40 md:!bottom-6 !bg-accent !text-white"
           >
             <TimerIcon />
           </Fab>
         )}
-      </Box>
+      </div>
     </>
   );
 }

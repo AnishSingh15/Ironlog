@@ -78,6 +78,7 @@ export function Sidebar() {
         <button
           type="button"
           onClick={() => logout()}
+          data-testid="logout-button"
           className="flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-2 hover:text-danger"
         >
           <LogoutIcon fontSize="small" />

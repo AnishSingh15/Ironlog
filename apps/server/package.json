@@ -18,7 +18,7 @@
     "db:studio": "prisma studio",
     "db:push": "prisma db push",
     "db:generate": "prisma generate",
-    "render:build": "rm -rf node_modules package-lock.json pnpm-lock.yaml yarn.lock && NPM_CONFIG_WORKSPACES=false npm install --no-workspaces --legacy-peer-deps && npx prisma generate && npx prisma migrate deploy && npx prisma db seed && npm run build"
+    "render:build": "rm -rf node_modules package-lock.json pnpm-lock.yaml yarn.lock && NPM_CONFIG_WORKSPACES=false npm install --no-workspaces --legacy-peer-deps && npx prisma generate && npx prisma migrate deploy && npm run build"
   },
   "prisma": {
     "seed": "tsx src/scripts/seed.ts"

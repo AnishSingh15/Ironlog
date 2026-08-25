@@ -25,6 +25,7 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
+  Legend,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -373,15 +374,13 @@ export default function ProgressPage() {
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
-                    label={({ muscleGroup, percent }: any) =>
-                      `${muscleGroup}: ${(percent * 100).toFixed(0)}%`
-                    }
                   >
                     {volumeData.map((entry, index) => (
                       <Cell key={index} fill={chartColors[index % chartColors.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </Card>

@@ -16,15 +16,27 @@ const app = express();
 
 // Security middleware
 app.use(helmet());
+
+// Matches any ironlog-web Vercel deployment (production + preview URLs,
+// e.g. ironlog-web-iota.vercel.app). The `cors` package matches array
+// entries by exact string, so a literal "*" wildcard never matches anything -
+// this needs a real RegExp.
+const VERCEL_ORIGIN_PATTERN = /^https:\/\/ironlog-web(-[a-z0-9-]+)?\.vercel\.app$/;
+
 app.use(
   cors({
     origin:
       process.env.NODE_ENV === 'production'
-        ? [
-            'https://ironlog-web.vercel.app',
-            'https://ironlog-web-*.vercel.app', // For preview deployments
-            process.env.FRONTEND_URL || 'https://ironlog-web.vercel.app',
-          ]
+        ? (origin, callback) => {
+            if (
+              !origin ||
+              VERCEL_ORIGIN_PATTERN.test(origin) ||
+              origin === process.env.FRONTEND_URL
+            ) {
+              return callback(null, true);
+            }
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
+          }
         : ['http://localhost:3000'],
     credentials: true,
   })

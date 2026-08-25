@@ -1,6 +1,6 @@
 // Advanced PWA Service Worker for IronLog
-const CACHE_NAME = 'ironlog-v1.0.0';
-const RUNTIME_CACHE = 'ironlog-runtime-v1.0.0';
+const CACHE_NAME = 'ironlog-v1.1.0';
+const RUNTIME_CACHE = 'ironlog-runtime-v1.1.0';
 
 // Assets to cache immediately
 const PRECACHE_ASSETS = [
@@ -167,31 +167,28 @@ async function handleStaticAssets(request) {
   }
 }
 
-// Stale While Revalidate strategy for pages
+// Network First strategy for pages - a live deploy must always win over a cached
+// HTML shell, which can reference JS chunk files an older build no longer serves
+// (stale-while-revalidate previously served that broken shell first, causing
+// ChunkLoadError crashes for anyone who had visited before a new deploy).
 async function handlePageRequest(request) {
-  const cachedResponse = await caches.match(request);
+  try {
+    const networkResponse = await fetch(request);
 
-  const fetchPromise = fetch(request)
-    .then(networkResponse => {
-      if (networkResponse.ok) {
-        // Clone the response before using it
-        const responseToCache = networkResponse.clone();
-        const cache = caches.open(RUNTIME_CACHE);
-        cache.then(c => c.put(request, responseToCache));
-      }
-      return networkResponse;
-    })
-    .catch(() => {
-      // If network fails and we have cache, return it
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      // Otherwise return offline page
-      return caches.match('/') || new Response('Offline - Please check your connection');
-    });
+    if (networkResponse.ok) {
+      const responseToCache = networkResponse.clone();
+      const cache = await caches.open(RUNTIME_CACHE);
+      cache.put(request, responseToCache);
+    }
 
-  // Return cached version immediately if available, otherwise wait for network
-  return cachedResponse || fetchPromise;
+    return networkResponse;
+  } catch (error) {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    return caches.match('/') || new Response('Offline - Please check your connection');
+  }
 }
 
 // Background sync for offline actions

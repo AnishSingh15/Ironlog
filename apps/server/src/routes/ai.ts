@@ -12,6 +12,7 @@ import { knowledgeTools } from '../ai/tools/knowledgeTools';
 import { embedTexts } from '../ai/rag/embeddings';
 import { searchKnowledge } from '../ai/rag/retrieval';
 import { workoutAnalysisSchema } from '../ai/schemas/workoutAnalysis';
+import { planWeekRequestSchema, weeklyPlanSchema } from '../ai/schemas/weeklyPlan';
 import { analyticsService } from '../services/analytics.service';
 
 const router = Router();
@@ -102,6 +103,98 @@ router.get('/fitness-state', async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error('Fitness state error:', error);
     return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+});
+
+const PLAN_WEEK_SYSTEM_PROMPT = `You are IronLog's training coach, building a personalized 7-day training
+plan for the week ahead. Use the provided tools to ground the plan in the user's real training history -
+recent frequency, weekly volume, exercises that are plateaued, and general programming knowledge via
+searchFitnessKnowledge. Respond with ONLY a JSON object matching this shape:
+{
+  "goal": string,
+  "summary": string,
+  "sessions": [{ "day": "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday",
+    "focus": string, "isRestDay": boolean, "exercises": [{ "name": string, "targetSets": number,
+    "targetReps": string }], "reasoning": string }]
+}
+"sessions" MUST have exactly 7 entries, one per day of the week, in order starting Monday. Rest days have
+isRestDay: true and an empty exercises array. Respect the user's stated available days, equipment, and
+session duration if given - days not listed as available should be rest days. This plan is a
+recommendation the user must explicitly review and apply; never claim it has already replaced their
+program. You are not a doctor: if the user's stated goal or constraints mention pain or injury, tell them
+to consult a qualified professional instead of programming around it silently.`;
+
+router.post('/plan-week', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const startedAt = new Date();
+
+  try {
+    const input = planWeekRequestSchema.parse(req.body ?? {});
+    const client = getOpenAIClient();
+
+    const preferenceLines = [
+      input.goal ? `Goal: ${input.goal}` : 'Goal: not specified - infer a sensible one from history.',
+      input.availableDays
+        ? `Available training days: ${input.availableDays.join(', ')}`
+        : 'Available training days: not specified - assume any day can be a training day.',
+      input.sessionDurationMinutes
+        ? `Target session length: ${input.sessionDurationMinutes} minutes`
+        : 'Target session length: not specified.',
+      input.equipment
+        ? `Available equipment: ${input.equipment.join(', ')}`
+        : 'Available equipment: not specified - assume standard gym equipment.',
+    ].join('\n');
+
+    const { output, toolCalls, usage } = await runAgent({
+      client,
+      userId,
+      model: config.openaiModel,
+      systemPrompt: PLAN_WEEK_SYSTEM_PROMPT,
+      userMessage: `Plan my next training week.\n${preferenceLines}`,
+      tools: coachTools,
+      outputSchema: weeklyPlanSchema,
+    });
+
+    await agentRunLogger.log({
+      userId,
+      workflow: 'plan_week',
+      model: config.openaiModel,
+      status: 'success',
+      toolCalls,
+      tokensPrompt: usage.promptTokens,
+      tokensCompletion: usage.completionTokens,
+      startedAt,
+      finishedAt: new Date(),
+    });
+
+    return res.json({ success: true, data: { plan: output } });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: { message: 'Invalid input data', details: error.errors },
+      });
+    }
+    if (error instanceof AiNotConfiguredError) {
+      return res.status(503).json({ success: false, error: { message: error.message } });
+    }
+
+    await agentRunLogger.log({
+      userId,
+      workflow: 'plan_week',
+      model: config.openaiModel,
+      status: error instanceof AgentOutputError ? 'validation_failed' : 'error',
+      toolCalls: [],
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      startedAt,
+      finishedAt: new Date(),
+    });
+
+    console.error('AI plan-week error:', error);
+    return res.status(502).json({
+      success: false,
+      error: { message: 'AI planning is temporarily unavailable' },
+    });
   }
 });
 

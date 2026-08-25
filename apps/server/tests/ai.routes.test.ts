@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { runAgent } from '../src/ai/agentRunner';
 
 vi.mock('../src/ai/agentRunner', () => ({
   runAgent: vi.fn(async () => ({
@@ -132,6 +133,56 @@ describe('AI routes', () => {
     await request(app)
       .get('/api/v1/ai/knowledge-search')
       .set('Authorization', `Bearer ${accessToken}`)
+      .expect(400);
+  });
+
+  it('returns a schema-valid 7-day plan for an authenticated user', async () => {
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ] as const;
+
+    vi.mocked(runAgent).mockResolvedValueOnce({
+      output: {
+        goal: 'Build strength',
+        summary: 'Three training days with adequate recovery between them.',
+        sessions: weekdays.map(day => ({
+          day,
+          focus: ['Monday', 'Wednesday', 'Friday'].includes(day) ? 'Full Body' : 'Rest',
+          isRestDay: !['Monday', 'Wednesday', 'Friday'].includes(day),
+          exercises: ['Monday', 'Wednesday', 'Friday'].includes(day)
+            ? [{ name: 'Bench Press', targetSets: 3, targetReps: '6-8' }]
+            : [],
+          reasoning: 'Alternating training and rest days for recovery.',
+        })),
+      },
+      toolCalls: [{ name: 'getTrainingFrequency', args: {} }],
+      usage: { promptTokens: 120, completionTokens: 80 },
+    });
+
+    const { default: app } = await import('../src/index');
+    const response = await request(app)
+      .post('/api/v1/ai/plan-week')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ goal: 'Build strength', availableDays: ['Monday', 'Wednesday', 'Friday'] })
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.plan.sessions).toHaveLength(7);
+    expect(response.body.data.plan.sessions[0].day).toBe('Monday');
+  });
+
+  it('rejects plan-week with an invalid day name', async () => {
+    const { default: app } = await import('../src/index');
+    await request(app)
+      .post('/api/v1/ai/plan-week')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ availableDays: ['Funday'] })
       .expect(400);
   });
 });

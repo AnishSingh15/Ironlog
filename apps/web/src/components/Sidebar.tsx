@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/auth';
 import { clsx } from 'clsx';
 import {
   AutoAwesome as AICoachIcon,
+  CalendarMonth as PlanIcon,
   FitnessCenter as WorkoutIcon,
   FitnessCenterOutlined as ExercisesIcon,
   History as HistoryIcon,
@@ -20,6 +21,7 @@ const navSections = [
     items: [
       { label: 'Home', path: '/dashboard', icon: HomeIcon },
       { label: 'Workout', path: '/workout', icon: WorkoutIcon },
+      { label: 'Plan', path: '/plan', icon: PlanIcon },
       { label: 'Progress', path: '/progress', icon: ProgressIcon },
       { label: 'History', path: '/history', icon: HistoryIcon },
       { label: 'AI Coach', path: '/ai-coach', icon: AICoachIcon },

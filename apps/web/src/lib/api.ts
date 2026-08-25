@@ -103,6 +103,43 @@ export interface KnowledgeMatch {
   score: number;
 }
 
+// Weekly planner types - mirror apps/server/src/ai/schemas/weeklyPlan.ts
+export type DayOfWeek =
+  | 'Monday'
+  | 'Tuesday'
+  | 'Wednesday'
+  | 'Thursday'
+  | 'Friday'
+  | 'Saturday'
+  | 'Sunday';
+
+export interface PlannedExercise {
+  name: string;
+  targetSets: number;
+  targetReps: string;
+}
+
+export interface PlannedSession {
+  day: DayOfWeek;
+  focus: string;
+  isRestDay: boolean;
+  exercises: PlannedExercise[];
+  reasoning: string;
+}
+
+export interface WeeklyPlan {
+  goal: string;
+  summary: string;
+  sessions: PlannedSession[];
+}
+
+export interface PlanWeekRequest {
+  goal?: string;
+  availableDays?: DayOfWeek[];
+  sessionDurationMinutes?: number;
+  equipment?: string[];
+}
+
 // Token management utilities
 class TokenManager {
   private static readonly ACCESS_TOKEN_KEY = 'accessToken';
@@ -391,6 +428,10 @@ export class ApiClient {
 
   async searchKnowledge(query: string, limit = 3): Promise<ApiResponse<{ results: KnowledgeMatch[] }>> {
     return this.get(`/ai/knowledge-search?q=${encodeURIComponent(query)}&limit=${limit}`);
+  }
+
+  async planWeek(request: PlanWeekRequest): Promise<ApiResponse<{ plan: WeeklyPlan }>> {
+    return this.post('/ai/plan-week', request);
   }
 
   async createRestDay(): Promise<ApiResponse<any>> {

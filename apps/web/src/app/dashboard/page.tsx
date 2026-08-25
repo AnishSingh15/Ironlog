@@ -11,6 +11,7 @@ import { useAuthStore } from '@/store/auth';
 import {
   AutoAwesome as AICoachIcon,
   ArrowForward as ArrowForwardIcon,
+  CalendarMonth as PlanIcon,
   FitnessCenter as WorkoutIcon,
   History as HistoryIcon,
   TrendingUp as ProgressIcon,
@@ -181,7 +182,14 @@ export default function DashboardPage() {
             </Card>
 
             {/* Quick links */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
+              <Card
+                className="cursor-pointer text-center transition-colors hover:bg-surface-2"
+                onClick={() => router.push('/plan')}
+              >
+                <PlanIcon className="mx-auto mb-1 text-text-secondary" fontSize="small" />
+                <p className="text-sm font-medium text-text-primary">Plan</p>
+              </Card>
               <Card
                 className="cursor-pointer text-center transition-colors hover:bg-surface-2"
                 onClick={() => router.push('/progress')}

@@ -78,3 +78,6 @@ coverage/
 # Prisma
 prisma/migrations/*/migration.sql
 node_modules
+
+# Claude Code worktrees
+.claude/

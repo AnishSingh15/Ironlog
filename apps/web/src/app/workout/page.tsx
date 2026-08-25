@@ -710,6 +710,22 @@ export default function DashboardPage() {
             <div className="max-h-[60vh] overflow-y-auto">
             {isLoadingExercises ? (
               <p className="py-8 text-center text-sm text-text-secondary">Loading exercises...</p>
+            ) : Object.keys(availableExercises).length === 0 ? (
+              <EmptyState
+                icon={<FitnessCenterIcon fontSize="large" />}
+                title="No exercises yet"
+                description="Add a few exercises to your library first, then come back to build a workout."
+                action={
+                  <Button
+                    onClick={() => {
+                      setShowWorkoutModal(false);
+                      router.push('/exercises');
+                    }}
+                  >
+                    Go to Exercises
+                  </Button>
+                }
+              />
             ) : (
               <div className="flex flex-col gap-5">
                 {Object.entries(availableExercises).map(([muscleGroup, exercises]) => (

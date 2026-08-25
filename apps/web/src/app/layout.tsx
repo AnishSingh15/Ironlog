@@ -1,9 +1,6 @@
 import { AppShell } from '@/components/AppShell';
 import { BottomNav } from '@/components/BottomNav';
-import { PWAInstallPrompt } from '@/components/PWAInstallPrompt';
-import { PWANotifications } from '@/components/PWANotifications';
 import { PWAOfflineIndicator } from '@/components/PWAOfflineIndicator';
-import { PWAStatusChecker } from '@/components/PWAStatusChecker';
 import { ServiceWorkerRegistration } from '@/components/ServiceWorkerRegistration';
 import { Toaster } from '@/components/ui/Toast';
 // import { Analytics } from '@vercel/analytics/next';
@@ -91,9 +88,6 @@ export default function RootLayout({
           <BottomNav />
           <Toaster />
           <ServiceWorkerRegistration />
-          <PWAInstallPrompt />
-          <PWANotifications />
-          <PWAStatusChecker />
           <PWAOfflineIndicator />
           {/* <Analytics /> */}
         </Providers>

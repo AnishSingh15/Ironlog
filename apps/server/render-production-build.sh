@@ -68,7 +68,7 @@ cat > "$BUILD_DIR/package.json" << 'EOF'
     "start": "node dist/index.js"
   },
   "dependencies": {
-    "@prisma/client": "6.10.1",
+    "@prisma/client": "^5.7.1",
     "bcryptjs": "2.4.3",
     "cookie-parser": "1.4.6",
     "cors": "2.8.5",
@@ -76,7 +76,9 @@ cat > "$BUILD_DIR/package.json" << 'EOF'
     "helmet": "7.1.0",
     "jsonwebtoken": "9.0.2",
     "morgan": "1.10.0",
-    "zod": "3.22.4"
+    "openai": "^7.5.0",
+    "zod": "3.22.4",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "2.4.6",
@@ -86,7 +88,7 @@ cat > "$BUILD_DIR/package.json" << 'EOF'
     "@types/jsonwebtoken": "9.0.5",
     "@types/morgan": "1.9.9",
     "@types/node": "20.10.5",
-    "prisma": "6.10.1",
+    "prisma": "^5.7.1",
     "typescript": "5.3.3"
   }
 }

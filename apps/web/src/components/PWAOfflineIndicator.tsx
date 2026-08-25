@@ -10,13 +10,11 @@ export function PWAOfflineIndicator() {
     const handleOnline = () => {
       setIsOnline(true);
       setShowOfflineMessage(false);
-      console.log('🌐 App is back online');
     };
 
     const handleOffline = () => {
       setIsOnline(false);
       setShowOfflineMessage(true);
-      console.log('📵 App is offline');
     };
 
     // Set initial state

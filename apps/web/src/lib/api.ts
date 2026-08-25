@@ -1,33 +1,20 @@
 /**
  * API client for IronLog application with authentication handling
  */
-//new deploy
 // Base configuration - require environment variable in production
 const getApiBaseUrl = (): string => {
   const envUrl = process.env.NEXT_PUBLIC_API_URL;
 
-  console.log('🔍 getApiBaseUrl called:', {
-    nodeEnv: process.env.NODE_ENV,
-    envUrl,
-    envUrlType: typeof envUrl,
-    envUrlLength: envUrl?.length,
-    isProduction: process.env.NODE_ENV === 'production',
-  });
-
   // In production, the environment variable must be set
   if (process.env.NODE_ENV === 'production' && !envUrl) {
-    const error = new Error(
+    throw new Error(
       'NEXT_PUBLIC_API_URL environment variable is required in production. ' +
         'Please set it in your Vercel deployment settings.'
     );
-    console.error('🚨 Production API URL Error:', error.message);
-    throw error;
   }
 
   // In development, fallback to localhost
-  const result = envUrl || 'http://localhost:3001';
-  console.log('🔍 getApiBaseUrl result:', result);
-  return result;
+  return envUrl || 'http://localhost:3001';
 };
 
 // Types
@@ -152,12 +139,6 @@ class TokenManager {
     // Set tokens in localStorage with 7-day expiry
     const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days
 
-    console.log('🔐 Setting tokens:', {
-      accessToken: tokens.accessToken?.substring(0, 20) + '...',
-      refreshToken: tokens.refreshToken?.substring(0, 20) + '...',
-      expiresAt,
-    });
-
     localStorage.setItem(this.ACCESS_TOKEN_KEY, tokens.accessToken);
     localStorage.setItem(this.REFRESH_TOKEN_KEY, tokens.refreshToken);
     localStorage.setItem(this.EXPIRES_AT_KEY, expiresAt.toString());
@@ -196,15 +177,7 @@ class TokenManager {
   }
 
   static getAccessToken(): string | null {
-    const tokens = this.getTokens();
-    const accessToken = tokens?.accessToken || null;
-
-    console.log('🔐 Getting access token:', {
-      hasToken: !!accessToken,
-      tokenPreview: accessToken?.substring(0, 20) + '...',
-    });
-
-    return accessToken;
+    return this.getTokens()?.accessToken || null;
   }
 }
 
@@ -228,22 +201,6 @@ export class ApiClient {
     const cleanBaseURL = rawBaseURL.replace(/\/+$/, ''); // Remove trailing slashes
     this.baseURL = `${cleanBaseURL}/api/v1`;
 
-    // Always log for debugging with environment info
-    console.log('🔍 API Client Initialized:', {
-      nodeEnv: process.env.NODE_ENV,
-      envVar: process.env.NEXT_PUBLIC_API_URL,
-      isProduction: process.env.NODE_ENV === 'production',
-      usingFallback: !process.env.NEXT_PUBLIC_API_URL && process.env.NODE_ENV !== 'production',
-      inputBaseURL: rawBaseURL,
-      cleanBaseURL,
-      finalBaseURL: this.baseURL,
-      // Additional debug info
-      allEnvVars: Object.keys(process.env).filter(key => key.startsWith('NEXT_PUBLIC_')),
-      envVarValue: process.env.NEXT_PUBLIC_API_URL,
-      envVarType: typeof process.env.NEXT_PUBLIC_API_URL,
-      envVarLength: process.env.NEXT_PUBLIC_API_URL?.length,
-    });
-
     return this.baseURL;
   }
 
@@ -254,13 +211,6 @@ export class ApiClient {
     try {
       const url = `${this.resolveBaseURL()}${endpoint}`;
 
-      // Debug logging - ALWAYS log to catch the issue
-      console.log('🔍 API Request Debug:', {
-        endpoint,
-        baseURL: this.baseURL,
-        finalURL: url,
-      });
-
       // Add authorization header if token exists
       const accessToken = TokenManager.getAccessToken();
       const headers: Record<string, string> = {
@@ -270,12 +220,6 @@ export class ApiClient {
 
       if (accessToken) {
         headers['Authorization'] = `Bearer ${accessToken}`;
-        console.log('🔐 Adding auth header:', {
-          hasToken: true,
-          tokenPreview: accessToken.substring(0, 20) + '...',
-        });
-      } else {
-        console.log('🔐 No access token available for request');
       }
 
       const response = await fetch(url, {
@@ -325,27 +269,14 @@ export class ApiClient {
 
   // Auth endpoints
   async login(credentials: LoginRequest): Promise<ApiResponse<{ user: User; tokens: AuthTokens }>> {
-    console.log('🔐 Attempting login for:', credentials.email);
-
     const response = await this.makeRequest<{ user: User; tokens: AuthTokens }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     });
 
-    console.log('🔐 Full login response:', JSON.stringify(response, null, 2));
-
     // Store tokens on successful login
     if (response.success && response.data?.tokens) {
       TokenManager.setTokens(response.data.tokens);
-      console.log('🔐 Tokens stored successfully');
-    } else {
-      console.error('🔐 Failed to store tokens - no tokens in response');
-      console.error('🔐 Response structure:', {
-        success: response.success,
-        hasData: !!response.data,
-        dataKeys: response.data ? Object.keys(response.data) : 'no data',
-        hasTokens: !!response.data?.tokens,
-      });
     }
 
     return response;

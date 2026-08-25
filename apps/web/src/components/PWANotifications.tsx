@@ -23,7 +23,6 @@ export function PWANotifications() {
 
   const requestNotificationPermission = async () => {
     if (!('Notification' in window)) {
-      console.log('This browser does not support notifications');
       return;
     }
 
@@ -33,8 +32,6 @@ export function PWANotifications() {
       setShowNotificationPrompt(false);
 
       if (permission === 'granted') {
-        console.log('✅ Notification permission granted');
-
         // Subscribe to push notifications
         if ('serviceWorker' in navigator && 'PushManager' in window) {
           const registration = await navigator.serviceWorker.ready;
@@ -47,12 +44,10 @@ export function PWANotifications() {
             const vapidPublicKey = 'YOUR_VAPID_PUBLIC_KEY'; // Replace with actual key
 
             try {
-              const subscription = await registration.pushManager.subscribe({
+              await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: vapidPublicKey,
               });
-
-              console.log('✅ Push subscription created:', subscription);
 
               // Send subscription to your server
               // await fetch('/api/subscribe', {
@@ -61,18 +56,15 @@ export function PWANotifications() {
               //   body: JSON.stringify(subscription)
               // });
             } catch (subscribeError) {
-              console.log('Push subscription failed (need VAPID keys):', subscribeError);
+              // Push subscription requires real VAPID keys to succeed - not configured yet.
             }
           }
         }
 
         // Show welcome notification
         showWelcomeNotification();
-      } else {
-        console.log('❌ Notification permission denied');
       }
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
       setShowNotificationPrompt(false);
     }
   };

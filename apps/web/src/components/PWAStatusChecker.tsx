@@ -34,13 +34,11 @@ export function PWAStatusChecker() {
           const registration = await navigator.serviceWorker.getRegistration();
           if (registration) {
             newStatus.serviceWorker = 'registered';
-            console.log('✅ Service Worker is registered:', registration);
           } else {
             newStatus.serviceWorker = 'supported';
           }
         } catch (error) {
           newStatus.serviceWorker = 'failed';
-          console.error('❌ Service Worker check failed:', error);
         }
       }
 
@@ -51,14 +49,12 @@ export function PWAStatusChecker() {
           const manifest = await response.json();
           if (manifest.name && manifest.icons && manifest.start_url) {
             newStatus.manifest = 'valid';
-            console.log('✅ Manifest is valid:', manifest);
           } else {
             newStatus.manifest = 'invalid';
           }
         }
       } catch (error) {
         newStatus.manifest = 'missing';
-        console.error('❌ Manifest check failed:', error);
       }
 
       // Check installability
@@ -78,7 +74,6 @@ export function PWAStatusChecker() {
     // Listen for service worker updates
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.addEventListener('message', event => {
-        console.log('📬 Service Worker message:', event.data);
         if (event.data.type === 'SW_ACTIVATED') {
           checkPWAStatus(); // Recheck status
         }

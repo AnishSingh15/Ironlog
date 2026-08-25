@@ -74,7 +74,7 @@ export function RestTimer({
       try {
         (audioRef.current as any)();
       } catch (error) {
-        console.log('Could not play notification sound:', error);
+        // Audio playback can fail silently (e.g. autoplay policy) - not critical.
       }
     }
   }, [isSoundEnabled]);

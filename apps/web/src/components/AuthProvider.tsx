@@ -19,13 +19,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const initializeAuth = async () => {
       if (authInitialized) return; // Prevent multiple initializations
 
-      console.log('🔐 Initializing authentication...');
-
       try {
         await checkAuth();
-        console.log('🔐 Auth initialization complete');
       } catch (error) {
-        console.error('🔐 Auth initialization error:', error);
+        // checkAuth already clears auth state on failure; nothing else to do here.
       } finally {
         if (mounted) {
           setAuthInitialized(true);

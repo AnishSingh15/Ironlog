@@ -21,7 +21,6 @@ export function PWAInstallPrompt() {
     };
 
     const handleAppInstalled = () => {
-      console.log('✅ PWA was installed');
       setShowInstallButton(false);
       setDeferredPrompt(null);
     };
@@ -31,7 +30,6 @@ export function PWAInstallPrompt() {
 
     // Check if app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
-      console.log('📱 App is running in standalone mode');
       setShowInstallButton(false);
     }
 
@@ -48,13 +46,7 @@ export function PWAInstallPrompt() {
     deferredPrompt.prompt();
 
     // Wait for the user to respond to the prompt
-    const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === 'accepted') {
-      console.log('✅ User accepted the install prompt');
-    } else {
-      console.log('❌ User dismissed the install prompt');
-    }
+    await deferredPrompt.userChoice;
 
     // Reset the deferred prompt
     setDeferredPrompt(null);

@@ -28,30 +28,19 @@ const API_CACHE_PATTERNS = [
 
 // Install event - cache essential resources
 self.addEventListener('install', event => {
-  console.log('🔧 Service Worker installing...');
-
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then(cache => {
-        console.log('📦 Caching essential assets');
-        return cache.addAll(PRECACHE_ASSETS);
-      })
-      .then(() => {
-        console.log('✅ Essential assets cached');
-        // Force the waiting service worker to become the active service worker
-        return self.skipWaiting();
-      })
-      .catch(error => {
-        console.error('❌ Failed to cache assets:', error);
+      .then(cache => cache.addAll(PRECACHE_ASSETS))
+      .then(() => self.skipWaiting())
+      .catch(() => {
+        // Precaching is best-effort - individual requests still work uncached.
       })
   );
 });
 
 // Activate event - clean up old caches
 self.addEventListener('activate', event => {
-  console.log('🚀 Service Worker activating...');
-
   event.waitUntil(
     Promise.all([
       // Clean up old caches
@@ -59,7 +48,6 @@ self.addEventListener('activate', event => {
         return Promise.all(
           cacheNames.map(cacheName => {
             if (cacheName !== CACHE_NAME && cacheName !== RUNTIME_CACHE) {
-              console.log('🗑️ Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
           })
@@ -68,7 +56,6 @@ self.addEventListener('activate', event => {
       // Take control of all clients
       self.clients.claim(),
     ]).then(() => {
-      console.log('✅ Service Worker activated and ready');
       // Notify all clients about activation
       self.clients.matchAll().then(clients => {
         clients.forEach(client => {
@@ -123,7 +110,6 @@ async function handleApiRequest(request) {
 
     return networkResponse;
   } catch (error) {
-    console.log('🌐 Network failed, trying cache for API:', request.url);
     const cachedResponse = await caches.match(request);
 
     if (cachedResponse) {
@@ -162,7 +148,6 @@ async function handleStaticAssets(request) {
 
     return networkResponse;
   } catch (error) {
-    console.log('❌ Failed to fetch asset:', request.url);
     throw error;
   }
 }
@@ -193,8 +178,6 @@ async function handlePageRequest(request) {
 
 // Background sync for offline actions
 self.addEventListener('sync', event => {
-  console.log('🔄 Background sync triggered:', event.tag);
-
   if (event.tag === 'workout-sync') {
     event.waitUntil(syncWorkoutData());
   }
@@ -205,9 +188,6 @@ async function syncWorkoutData() {
   try {
     // Get pending workout data from IndexedDB or localStorage
     // This would sync any workout data that was created while offline
-    console.log('📊 Syncing workout data...');
-
-    // Notify clients about sync completion
     const clients = await self.clients.matchAll();
     clients.forEach(client => {
       client.postMessage({
@@ -216,14 +196,12 @@ async function syncWorkoutData() {
       });
     });
   } catch (error) {
-    console.error('❌ Failed to sync workout data:', error);
+    // Best-effort sync - failures are silent, the next sync attempt will retry.
   }
 }
 
 // Push notification handling
 self.addEventListener('push', event => {
-  console.log('📨 Push notification received');
-
   const options = {
     body: event.data ? event.data.text() : 'New workout reminder!',
     icon: '/icons/icon-192.png',
@@ -246,8 +224,6 @@ self.addEventListener('push', event => {
 
 // Handle notification clicks
 self.addEventListener('notificationclick', event => {
-  console.log('🔔 Notification clicked:', event.action);
-
   event.notification.close();
 
   if (event.action === 'open' || !event.action) {
@@ -257,8 +233,6 @@ self.addEventListener('notificationclick', event => {
 
 // Handle messages from the main app
 self.addEventListener('message', event => {
-  console.log('💬 Message received in SW:', event.data);
-
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
@@ -268,5 +242,3 @@ self.addEventListener('message', event => {
     self.registration.sync.register('workout-sync');
   }
 });
-
-console.log('🚀 IronLog Service Worker loaded successfully!');

@@ -290,8 +290,7 @@ export class AnalyticsService {
     }
 
     if (!best) return null;
-    const { confidence: _confidence, ...alert } = best;
-    return alert;
+    return { exercise: best.exercise, durationSessions: best.durationSessions, trend: best.trend };
   }
 }
 

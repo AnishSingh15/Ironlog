@@ -44,6 +44,23 @@ vi.mock('../src/services/analytics.service', () => ({
   },
 }));
 
+vi.mock('../src/ai/rag/embeddings', () => ({
+  embedTexts: vi.fn(async () => [[0.1, 0.2, 0.3]]),
+}));
+
+vi.mock('../src/ai/rag/retrieval', () => ({
+  searchKnowledge: vi.fn(async () => [
+    {
+      id: '1',
+      source: 'progressive-overload.md',
+      title: 'Progressive Overload',
+      content: 'Progress is not linear.',
+      chunkIndex: 0,
+      score: 0.92,
+    },
+  ]),
+}));
+
 const prisma = new PrismaClient();
 
 describe('AI routes', () => {
@@ -96,5 +113,25 @@ describe('AI routes', () => {
 
     expect(response.body.success).toBe(true);
     expect(response.body.data.trainingFrequency.totalSessions).toBe(4);
+  });
+
+  it('returns cited knowledge chunks for a search query', async () => {
+    const { default: app } = await import('../src/index');
+    const response = await request(app)
+      .get('/api/v1/ai/knowledge-search')
+      .query({ q: 'why am I stuck on bench press' })
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.results[0].source).toBe('progressive-overload.md');
+  });
+
+  it('rejects knowledge-search with a missing query', async () => {
+    const { default: app } = await import('../src/index');
+    await request(app)
+      .get('/api/v1/ai/knowledge-search')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(400);
   });
 });

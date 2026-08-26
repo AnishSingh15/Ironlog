@@ -82,8 +82,10 @@ test.describe('Authentication Flow', () => {
     if (await sidebarLogout.isVisible()) {
       await sidebarLogout.click();
     } else {
+      // Opening the menu doesn't remove the sidebar's own (still-hidden) button from the
+      // DOM, so two elements now match - the account menu's is the one appended last.
       await page.click('[data-testid="account-menu-button"]');
-      await page.click('[data-testid="logout-button"]');
+      await page.locator('[data-testid="logout-button"]').last().click();
     }
     await expect(page).toHaveURL('/login');
   });

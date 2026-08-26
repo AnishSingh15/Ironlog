@@ -1,16 +1,17 @@
 'use client';
 
+import { AiLoadingIndicator } from '@/components/AiLoadingIndicator';
 import { AppHeader } from '@/components/AppHeader';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { toast } from '@/components/ui/Toast';
 import { checkmarkDraw } from '@/lib/motion';
 import { api, DayOfWeek, WeeklyPlan } from '@/lib/api';
 import { useAuthStore } from '@/store/auth';
 import { AutoAwesome, CalendarMonth } from '@mui/icons-material';
-import { Container, TextField } from '@mui/material';
+import { TextField } from '@mui/material';
 import { clsx } from 'clsx';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -43,6 +44,7 @@ export default function PlanPage() {
   ]);
   const [sessionDurationMinutes, setSessionDurationMinutes] = useState('60');
   const [justGenerated, setJustGenerated] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -68,6 +70,7 @@ export default function PlanPage() {
     if (response.success && response.data) {
       setPlan(response.data.plan);
       setState('ready');
+      setSaveState('idle');
       setJustGenerated(true);
       setTimeout(() => setJustGenerated(false), 1800);
       return;
@@ -82,10 +85,34 @@ export default function PlanPage() {
     setState('error');
   };
 
+  const savePlan = async () => {
+    if (!plan) return;
+    setSaveState('saving');
+
+    const response = await api.saveWeekPlan(plan);
+    if (response.success && response.data) {
+      const { savedDays, skippedDays } = response.data;
+      setSaveState('saved');
+      if (savedDays.length > 0) {
+        toast.success(
+          skippedDays.length > 0
+            ? `Saved ${savedDays.join(', ')}. Skipped ${skippedDays.map(d => d.day).join(', ')} - already scheduled.`
+            : `Saved to your calendar: ${savedDays.join(', ')}.`
+        );
+      } else {
+        toast.error('Every day this week already has a workout scheduled - nothing to save.');
+      }
+      return;
+    }
+
+    setSaveState('idle');
+    toast.error(response.error?.message || "Couldn't save this plan. Try again.");
+  };
+
   return (
     <div className="min-h-screen bg-canvas pb-20 md:pb-0">
       <AppHeader title="Plan" showWeightToggle={false} />
-      <Container maxWidth="sm" className="!px-4 !py-6">
+      <div className="mx-auto max-w-4xl px-4 py-5 pb-24 md:pb-6">
         {(state === 'idle' || state === 'error' || state === 'unavailable') && (
           <Card className="mb-4">
             <p className="mb-4 text-sm text-text-secondary">
@@ -142,13 +169,7 @@ export default function PlanPage() {
           </Card>
         )}
 
-        {state === 'loading' && (
-          <div className="space-y-3">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-24 w-full" />
-            ))}
-          </div>
-        )}
+        {state === 'loading' && <AiLoadingIndicator label="Building your week..." />}
 
         {state === 'unavailable' && (
           <EmptyState
@@ -235,12 +256,28 @@ export default function PlanPage() {
               </Card>
             ))}
 
-            <Button variant="secondary" className="w-full" onClick={() => setState('idle')}>
-              Adjust and regenerate
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                onClick={savePlan}
+                disabled={saveState !== 'idle'}
+              >
+                {saveState === 'saved' ? 'Saved to your calendar' : saveState === 'saving' ? 'Saving...' : 'Save this week'}
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  setState('idle');
+                  setSaveState('idle');
+                }}
+              >
+                Adjust and regenerate
+              </Button>
+            </div>
           </div>
         )}
-      </Container>
+      </div>
     </div>
   );
 }

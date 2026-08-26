@@ -16,6 +16,7 @@ import { workoutAnalysisSchema } from '../ai/schemas/workoutAnalysis';
 import { planWeekRequestSchema, weeklyPlanSchema } from '../ai/schemas/weeklyPlan';
 import { analyticsService } from '../services/analytics.service';
 import { calculateProgress } from '../services/progression';
+import { workoutService } from '../services/workout.service';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -283,6 +284,22 @@ router.post('/plan-week', async (req: AuthRequest, res: Response) => {
       success: false,
       error: { message: 'AI planning is temporarily unavailable' },
     });
+  }
+});
+
+router.post('/plan-week/save', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+
+  try {
+    const plan = weeklyPlanSchema.parse(req.body?.plan);
+    const result = await workoutService.saveWeeklyPlan(userId, plan);
+    return res.json({ success: true, data: result });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: { message: 'Invalid plan data', details: error.errors } });
+    }
+    console.error('Save plan error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
   }
 });
 

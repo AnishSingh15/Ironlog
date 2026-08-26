@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Metric } from '@/components/ui/Metric';
-import { Skeleton } from '@/components/ui/Skeleton';
+import { AiLoadingIndicator } from '@/components/AiLoadingIndicator';
 import { toast } from '@/components/ui/Toast';
 import { insightAppear } from '@/lib/motion';
 import {
@@ -239,13 +239,7 @@ export default function AICoachPage() {
           </Card>
         )}
 
-        {state === 'loading' && (
-          <div className="space-y-3">
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-32 w-full" />
-            <Skeleton className="h-32 w-full" />
-          </div>
-        )}
+        {state === 'loading' && <AiLoadingIndicator />}
 
         {state === 'unavailable' && (
           <EmptyState

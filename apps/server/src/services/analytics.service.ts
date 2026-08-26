@@ -96,7 +96,7 @@ export interface TodayAdaptation {
   recommendation: ProgressionRecommendation;
 }
 
-function startOfIsoWeek(date: Date): Date {
+export function startOfIsoWeek(date: Date): Date {
   const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const day = d.getUTCDay() || 7;
   if (day !== 1) d.setUTCDate(d.getUTCDate() - (day - 1));

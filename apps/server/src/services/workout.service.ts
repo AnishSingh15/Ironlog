@@ -1,5 +1,21 @@
 import { Exercise, PrismaClient } from '@prisma/client';
-import { analyticsService } from './analytics.service';
+import { analyticsService, startOfIsoWeek } from './analytics.service';
+import type { WeeklyPlan } from '../ai/schemas/weeklyPlan';
+
+const DAY_INDEX: Record<WeeklyPlan['sessions'][number]['day'], number> = {
+  Monday: 0,
+  Tuesday: 1,
+  Wednesday: 2,
+  Thursday: 3,
+  Friday: 4,
+  Saturday: 5,
+  Sunday: 6,
+};
+
+export interface SavePlanResult {
+  savedDays: string[];
+  skippedDays: { day: string; reason: string }[];
+}
 
 const prisma = new PrismaClient();
 
@@ -377,6 +393,64 @@ export class WorkoutService {
     });
 
     return restDayWorkout;
+  }
+
+  // Persists an AI-generated weekly plan as real WorkoutDay/SetRecord rows for the
+  // current ISO week (same week boundary as the Weekly Calendar/Week Review use), so
+  // it shows up as the user's actual scheduled training rather than staying a one-off
+  // suggestion that disappears on refresh. Exercises the plan names that don't exist
+  // yet are created (same "Full Body" fallback category the manual add-exercise flow
+  // allows) rather than silently dropped.
+  async saveWeeklyPlan(userId: string, plan: WeeklyPlan): Promise<SavePlanResult> {
+    const weekStart = startOfIsoWeek(new Date());
+    const savedDays: string[] = [];
+    const skippedDays: { day: string; reason: string }[] = [];
+
+    for (const session of plan.sessions) {
+      const date = new Date(weekStart);
+      date.setUTCDate(date.getUTCDate() + DAY_INDEX[session.day]);
+
+      const existing = await prisma.workoutDay.findUnique({ where: { date } });
+      if (existing) {
+        skippedDays.push({
+          day: session.day,
+          reason: existing.userId === userId ? 'Already has a workout scheduled' : 'Date unavailable',
+        });
+        continue;
+      }
+
+      if (session.isRestDay) {
+        await prisma.workoutDay.create({ data: { userId, date, isRestDay: true, completed: false } });
+        savedDays.push(session.day);
+        continue;
+      }
+
+      const workoutDay = await prisma.workoutDay.create({ data: { userId, date, isRestDay: false, completed: false } });
+
+      for (const planned of session.exercises) {
+        const exercise = await prisma.exercise.upsert({
+          where: { name: planned.name },
+          update: {},
+          create: {
+            name: planned.name,
+            muscleGroup: 'Full Body',
+            defaultSets: planned.targetSets,
+            defaultReps: parseInt(planned.targetReps, 10) || 10,
+          },
+        });
+
+        const plannedReps = parseInt(planned.targetReps, 10) || null;
+        for (let setIndex = 0; setIndex < planned.targetSets; setIndex++) {
+          await prisma.setRecord.create({
+            data: { workoutDayId: workoutDay.id, exerciseId: exercise.id, setIndex, plannedReps },
+          });
+        }
+      }
+
+      savedDays.push(session.day);
+    }
+
+    return { savedDays, skippedDays };
   }
 }
 

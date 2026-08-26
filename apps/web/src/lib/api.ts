@@ -488,6 +488,12 @@ export class ApiClient {
     return this.post('/ai/plan-week', request);
   }
 
+  async saveWeekPlan(
+    plan: WeeklyPlan
+  ): Promise<ApiResponse<{ savedDays: string[]; skippedDays: { day: string; reason: string }[] }>> {
+    return this.post('/ai/plan-week/save', { plan });
+  }
+
   async createRestDay(): Promise<ApiResponse<any>> {
     return this.post('/workouts/rest-day');
   }

@@ -180,7 +180,7 @@ jobs:
           # NEXT_PUBLIC_* vars are inlined into the client bundle at build time, not read
           # at runtime - setting this only in the e2e job's `next start` step (as before)
           # had no effect on the already-compiled artifact. Must match the e2e job's value.
-          NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+          NEXT_PUBLIC_API_URL: http://localhost:3001
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -273,7 +273,7 @@ jobs:
           pnpm start &
           sleep 15
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+          NEXT_PUBLIC_API_URL: http://localhost:3001
 
       - name: Wait for servers to be ready
         run: |
@@ -295,7 +295,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ironlog_e2e
           JWT_SECRET: test-secret
           JWT_REFRESH_SECRET: test-refresh-secret
-          NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+          NEXT_PUBLIC_API_URL: http://localhost:3001
 
       - name: Upload E2E test results
         uses: actions/upload-artifact@v4

@@ -86,7 +86,7 @@ export function useAuth() {
       // Ignore logout errors
     } finally {
       logout();
-      router.push('/');
+      router.push('/login');
     }
   };
 

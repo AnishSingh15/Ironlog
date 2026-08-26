@@ -54,7 +54,7 @@ test.describe('Authentication Flow', () => {
     await expect(page).toHaveURL('/dashboard');
 
     // Should see the dashboard content
-    await expect(page.locator('h5')).toContainText('Ready to Start Your Workout?');
+    await expect(page.getByText("Today's Workout")).toBeVisible();
   });
 
   test('should show validation errors for invalid inputs', async ({ page }) => {
@@ -63,8 +63,8 @@ test.describe('Authentication Flow', () => {
     // Try to submit with empty fields
     await page.click('[data-testid="login-button"]');
 
-    // Should show validation errors
-    await expect(page.locator('.MuiAlert-message')).toBeVisible();
+    // Should show inline field validation errors
+    await expect(page.getByText('Password is required')).toBeVisible();
   });
 
   test('should logout successfully', async ({ page }) => {
@@ -78,6 +78,6 @@ test.describe('Authentication Flow', () => {
 
     // Logout
     await page.click('[data-testid="logout-button"]');
-    await expect(page).toHaveURL('/');
+    await expect(page).toHaveURL('/login');
   });
 });

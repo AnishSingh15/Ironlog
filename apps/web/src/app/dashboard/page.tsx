@@ -11,6 +11,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { api, FitnessStateSnapshot, PersonalRecord, WeekCalendarDay } from '@/lib/api';
 import { fadeSlideUp, insightAppear } from '@/lib/motion';
+import { getWorkoutHeroImage } from '@/lib/workoutHeroImage';
 import { useAuthStore } from '@/store/auth';
 import {
   AutoAwesome as AICoachIcon,
@@ -23,8 +24,10 @@ import {
   WarningAmber as PlateauIcon,
 } from '@mui/icons-material';
 import { AnimatePresence, motion } from 'framer-motion';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Area, AreaChart, ResponsiveContainer } from 'recharts';
 
 interface TodayWorkout {
   completed: boolean;
@@ -130,6 +133,7 @@ export default function DashboardPage() {
   const latestWeeklyVolume = fitnessState?.weeklyVolume?.length
     ? fitnessState.weeklyVolume[fitnessState.weeklyVolume.length - 1].totalVolume
     : 0;
+  const showHeroPhoto = Boolean(hasToday && today && !today.isRestDay);
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -160,13 +164,31 @@ export default function DashboardPage() {
             <div className="grid gap-4 md:grid-cols-[1.4fr_1fr]">
               <Card
                 padding="lg"
-                className="relative overflow-hidden border-none bg-gradient-to-br from-surface-3 via-surface-1 to-accent/15 text-text-primary"
+                className={`relative overflow-hidden border-none ${
+                  showHeroPhoto ? 'text-white' : 'bg-gradient-to-br from-surface-3 via-surface-1 to-accent/15 text-text-primary'
+                }`}
               >
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_hsl(var(--il-accent)/0.25),_transparent_60%)]" />
+                {showHeroPhoto && today ? (
+                  <>
+                    <Image
+                      src={getWorkoutHeroImage(today.splitName)}
+                      alt=""
+                      fill
+                      priority
+                      sizes="(min-width: 768px) 60vw, 100vw"
+                      className="object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/10" />
+                  </>
+                ) : (
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,_hsl(var(--il-accent)/0.25),_transparent_60%)]" />
+                )}
                 <div className="relative">
                   <div className="mb-1 flex items-center gap-2">
                     <WorkoutIcon className="text-accent" fontSize="small" />
-                    <span className="text-xs font-semibold uppercase tracking-wide text-text-tertiary">
+                    <span
+                      className={`text-xs font-semibold uppercase tracking-wide ${showHeroPhoto ? 'text-white/70' : 'text-text-tertiary'}`}
+                    >
                       Today's Workout
                     </span>
                   </div>
@@ -191,16 +213,16 @@ export default function DashboardPage() {
                     </>
                   )}
 
-                  {hasToday && today && !today.isRestDay && (
+                  {showHeroPhoto && today && (
                     <>
                       <div className="mb-2 flex items-center gap-2">
-                        <p className="text-2xl font-bold text-text-primary">{today.splitName}</p>
+                        <p className="text-2xl font-bold text-white">{today.splitName}</p>
                         {today.completed && <Badge tone="success">Completed</Badge>}
                         {!today.completed && (
                           <Badge tone="accent">{today.completionPercentage}% done</Badge>
                         )}
                       </div>
-                      <p className="mb-4 font-mono text-sm text-text-secondary">
+                      <p className="mb-4 font-mono text-sm text-white/70">
                         {today.exerciseNames.join(' · ')}
                       </p>
                     </>
@@ -254,6 +276,22 @@ export default function DashboardPage() {
                         No plateaus detected in your recent lifts - keep it up. Ask the AI Coach
                         for a full progression analysis anytime.
                       </p>
+                    )}
+
+                    {fitnessState && fitnessState.weeklyVolume.length > 1 && (
+                      <div className="mt-3 h-12">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={fitnessState.weeklyVolume}>
+                            <Area
+                              type="monotone"
+                              dataKey="totalVolume"
+                              stroke="hsl(var(--il-accent))"
+                              fill="hsl(var(--il-accent) / 0.15)"
+                              strokeWidth={2}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
                     )}
                   </Card>
                 </motion.div>

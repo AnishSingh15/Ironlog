@@ -206,13 +206,13 @@ export default function AICoachPage() {
   return (
     <div className="min-h-screen bg-canvas pb-20 md:pb-0">
       <AppHeader title="AI Coach" showWeightToggle={false} />
-      <div className="mx-auto max-w-sm px-4 py-6">
+      <div className="mx-auto max-w-6xl px-4 py-5 pb-24 md:pb-6">
         <div className="mb-5">
           <h1 className="text-lg font-semibold text-text-primary">AI Coach</h1>
           <p className="text-sm text-text-secondary">Your training intelligence.</p>
         </div>
 
-        <div className="mb-5 grid grid-cols-2 gap-2">
+        <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {actions.map(action => (
             <button
               key={action.key}

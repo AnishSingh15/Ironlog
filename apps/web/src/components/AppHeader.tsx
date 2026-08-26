@@ -62,7 +62,11 @@ export function AppHeader({ title, showWeightToggle = true }: AppHeaderProps) {
 
         <ThemeToggleSwitch />
 
-        <IconButton onClick={e => setProfileMenuAnchor(e.currentTarget)} size="small">
+        <IconButton
+          onClick={e => setProfileMenuAnchor(e.currentTarget)}
+          size="small"
+          data-testid="account-menu-button"
+        >
           <Avatar className="!h-8 !w-8 !bg-accent !text-accent-foreground !text-sm !font-semibold">
             {user?.email?.[0]?.toUpperCase() || 'U'}
           </Avatar>

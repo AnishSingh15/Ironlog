@@ -76,8 +76,15 @@ test.describe('Authentication Flow', () => {
 
     await expect(page).toHaveURL('/dashboard');
 
-    // Logout
-    await page.click('[data-testid="logout-button"]');
+    // Logout - the sidebar's logout button is only visible at desktop widths
+    // (`hidden md:flex`); on mobile it's the account menu's own entry instead.
+    const sidebarLogout = page.locator('[data-testid="logout-button"]').first();
+    if (await sidebarLogout.isVisible()) {
+      await sidebarLogout.click();
+    } else {
+      await page.click('[data-testid="account-menu-button"]');
+      await page.click('[data-testid="logout-button"]');
+    }
     await expect(page).toHaveURL('/login');
   });
 });

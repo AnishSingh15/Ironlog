@@ -164,26 +164,19 @@ export function MuscleVolumeSection() {
           </div>
 
           <div className="flex flex-col gap-4">
-            <ol className="space-y-1.5" aria-label="Muscle volume ranking">
+            {/* Visually hidden - the anatomical body is the visible way to select a
+                muscle; this just keeps the same data available to screen readers. */}
+            <ol className="sr-only" aria-label="Muscle volume ranking">
               {ranked.map(([group, entry], i) => (
                 <li key={group}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedGroup(prev => (prev === group ? null : group))}
-                    className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-surface-2 ${
-                      selectedGroup === group ? 'bg-surface-2' : ''
-                    }`}
-                  >
-                    <span className="text-text-secondary">
-                      {i + 1}. {group.replace(/_/g, ' ')}
-                    </span>
-                    <span className="font-mono text-text-primary">
-                      {formatVolume(entry.volumeKg)} {unit}
-                    </span>
-                  </button>
+                  {i + 1}. {group.replace(/_/g, ' ')}: {formatVolume(entry.volumeKg)} {unit}
                 </li>
               ))}
             </ol>
+
+            {!selectedGroup && (
+              <p className="text-sm text-text-tertiary">Tap a muscle on the body to see its details.</p>
+            )}
 
             <AnimatePresence>
               {selectedGroup && muscles[selectedGroup] && (

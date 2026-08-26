@@ -49,9 +49,16 @@ export function useAuth() {
 
       const response = await apiClient.register({ name, email, password });
 
-      setUser((response.data as any)?.user);
-      router.push('/dashboard');
-      return { success: true };
+      if (response.success && response.data?.user) {
+        setUser(response.data.user);
+        router.push('/dashboard');
+        return { success: true };
+      }
+
+      return {
+        success: false,
+        error: response.error?.message || 'Registration failed - invalid response',
+      };
     } catch (error: any) {
       // Handle different types of errors
       let errorMessage = 'Registration failed';

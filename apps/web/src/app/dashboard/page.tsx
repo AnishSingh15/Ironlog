@@ -137,7 +137,7 @@ export default function DashboardPage() {
 
       <div className="mx-auto max-w-6xl px-4 py-5 pb-24 md:pb-6">
         <div className="mb-5 flex items-center justify-between">
-          <h1 className="text-xl font-semibold text-text-primary">
+          <h1 className="text-xl font-semibold text-text-primary" data-testid="welcome-message">
             {firstName ? `Welcome back, ${firstName}` : 'Welcome back'}
           </h1>
           {stats && stats.currentStreak > 0 && (

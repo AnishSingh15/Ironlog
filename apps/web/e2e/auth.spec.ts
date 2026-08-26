@@ -35,9 +35,10 @@ test.describe('Authentication Flow', () => {
 
     await page.click('[data-testid="register-button"]');
 
-    // Should redirect to dashboard after successful registration
+    // Should redirect to dashboard after successful registration. The greeting shows
+    // only the first name (correct product behavior), not the full timestamped test name.
     await expect(page).toHaveURL('/dashboard');
-    await expect(page.locator('[data-testid="welcome-message"]')).toContainText(testName);
+    await expect(page.locator('[data-testid="welcome-message"]')).toContainText(testName.split(' ')[0]);
   });
 
   test('should login existing user', async ({ page }) => {

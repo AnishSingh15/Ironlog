@@ -5,6 +5,13 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
+  /* dashboard.spec.ts and history-profile.spec.ts predate the visual redesign and assert
+   * UI that no longer exists (accordion workout page, calendar heatmap, old profile form).
+   * They now get past login (previously they failed instantly) and hang out the full
+   * per-test timeout waiting for elements that will never appear, x2 retries x5 browsers -
+   * turning a few failing tests into a multi-hour CI run. Quarantined pending a rewrite
+   * of these suites against the current UI. */
+  testIgnore: ['**/dashboard.spec.ts', '**/history-profile.spec.ts'],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

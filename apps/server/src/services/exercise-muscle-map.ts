@@ -1,4 +1,28 @@
-import type { MuscleGroup } from '@musclemap/core';
+// Mirrors @musclemap/core's MuscleGroup union exactly (packages/core/src/types.ts in
+// github.com/Jsplice/MuscleMap) - hand-rolled here rather than imported so the server
+// doesn't take a dependency on a frontend-oriented, ESM-only npm package just for one type.
+export type MuscleGroup =
+  | 'CHEST'
+  | 'BACK_UPPER'
+  | 'BACK_LOWER'
+  | 'TRAPEZIUS'
+  | 'RHOMBOIDS'
+  | 'LATS'
+  | 'SHOULDERS_FRONT'
+  | 'SHOULDERS_SIDE'
+  | 'SHOULDERS_REAR'
+  | 'BICEPS'
+  | 'TRICEPS'
+  | 'FOREARMS'
+  | 'CORE'
+  | 'OBLIQUES'
+  | 'GLUTES'
+  | 'QUADS'
+  | 'HAMSTRINGS'
+  | 'CALVES'
+  | 'HIP_FLEXORS'
+  | 'ADDUCTORS'
+  | 'ABDUCTORS';
 
 export const MUSCLE_WEIGHTS = { primary: 1.0, secondary: 0.5 } as const;
 // A secondary/assisting muscle does real work but less than the prime mover.

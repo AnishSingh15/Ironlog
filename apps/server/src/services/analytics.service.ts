@@ -1,8 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import type { MuscleGroup } from '@musclemap/core';
 import { detectPlateau, type PlateauTrend } from './plateau';
 import { calculateProgress, type ProgressionRecommendation } from './progression';
-import { getMuscleContributions } from './exercise-muscle-map';
+import { getMuscleContributions, type MuscleGroup } from './exercise-muscle-map';
 
 const prisma = new PrismaClient();
 

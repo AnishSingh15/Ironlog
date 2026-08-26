@@ -60,9 +60,6 @@ importers:
 
   apps/server:
     dependencies:
-      '@musclemap/core':
-        specifier: ^1.0.1
-        version: 1.0.1
       '@prisma/client':
         specifier: ^5.7.1
         version: 5.22.0(prisma@5.22.0)

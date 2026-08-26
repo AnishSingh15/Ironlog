@@ -56,6 +56,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@musclemap/core':
+        specifier: ^1.0.1
+        version: 1.0.1
       '@prisma/client':
         specifier: ^5.7.1
         version: 5.22.0(prisma@5.22.0)
@@ -168,6 +171,15 @@ importers:
       '@mui/x-date-pickers':
         specifier: ^7.19.0
         version: 7.29.4(@emotion/react@11.14.0)(@emotion/styled@11.14.0)(@mui/material@6.4.12)(@mui/system@6.4.12)(@types/react@19.1.8)(date-fns@4.1.0)(react-dom@19.1.0)(react@19.1.0)
+      '@musclemap/assets':
+        specifier: ^1.0.1
+        version: 1.0.1
+      '@musclemap/core':
+        specifier: ^1.0.1
+        version: 1.0.1
+      '@musclemap/react':
+        specifier: ^1.0.1
+        version: 1.0.1(react-dom@19.1.0)(react@19.1.0)
       '@radix-ui/react-dialog':
         specifier: ^1.0.5
         version: 1.1.14(@types/react-dom@19.1.6)(@types/react@19.1.8)(react-dom@19.1.0)(react@19.1.0)
@@ -2011,6 +2023,28 @@ packages:
       react: 19.1.0
     transitivePeerDependencies:
       - '@types/react'
+    dev: false
+
+  /@musclemap/assets@1.0.1:
+    resolution: {integrity: sha512-AshNhSWKhvM/mj8XAFwtu2p4SU4aShGv+S2213BpcWNOCKgVpUveg6ndaIh9TkQoK+x3ptezMI1XSV7Xn31DKw==}
+    dependencies:
+      '@musclemap/core': 1.0.1
+    dev: false
+
+  /@musclemap/core@1.0.1:
+    resolution: {integrity: sha512-VomPp3PV1rcanj82EOok7RiQFgPkRITRZIT/J3e2g3BmwoVKCEie83PW5qWKey+iuzXxkSHTx7iz19ZvKi105w==}
+    dev: false
+
+  /@musclemap/react@1.0.1(react-dom@19.1.0)(react@19.1.0):
+    resolution: {integrity: sha512-doi37942xT3gC1ZCIB6nqKymGelZhrhWREtIoOPB5A/oiR5BNr5OHUwgHSbZTJz74D01hPvMzO6kpa4NpiBOPg==}
+    peerDependencies:
+      react: ^18 || ^19
+      react-dom: ^18 || ^19
+    dependencies:
+      '@musclemap/assets': 1.0.1
+      '@musclemap/core': 1.0.1
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
     dev: false
 
   /@napi-rs/wasm-runtime@0.2.11:

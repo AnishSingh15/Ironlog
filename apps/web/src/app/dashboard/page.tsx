@@ -2,7 +2,7 @@
 
 import { AnimatedMetric } from '@/components/AnimatedMetric';
 import { AppHeader } from '@/components/AppHeader';
-import { MuscleGroupDiagram } from '@/components/MuscleGroupDiagram';
+import { MuscleVolumeSection } from '@/components/MuscleVolumeSection';
 import { WeekCalendarStrip } from '@/components/WeekCalendarStrip';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -298,31 +298,8 @@ export default function DashboardPage() {
               </div>
             </Card>
 
-            {/* Muscle Group Volume / Weekly Calendar / Progress */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <SectionHeader title="Muscle Group Volume" />
-                {fitnessState?.muscleGroupVolume?.length ? (
-                  <div className="flex items-center gap-4">
-                    <MuscleGroupDiagram data={fitnessState.muscleGroupVolume} />
-                    <ul className="flex-1 space-y-1.5">
-                      {fitnessState.muscleGroupVolume.slice(0, 5).map(g => (
-                        <li key={g.muscleGroup} className="flex items-center justify-between text-sm">
-                          <span className="text-text-secondary">{g.muscleGroup}</span>
-                          <span className="font-mono text-text-primary">
-                            {Math.round(g.totalVolume).toLocaleString()}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <p className="text-sm text-text-tertiary">
-                    Log a few workouts to see your volume by muscle group.
-                  </p>
-                )}
-              </Card>
-
+            {/* Weekly Calendar / Progress */}
+            <div className="grid gap-4 md:grid-cols-2">
               <Card>
                 <SectionHeader title="Weekly Calendar" />
                 {weekCalendar.length > 0 ? (
@@ -365,6 +342,8 @@ export default function DashboardPage() {
                 )}
               </Card>
             </div>
+
+            <MuscleVolumeSection />
 
             {/* Recent Activity */}
             <Card>

@@ -96,6 +96,22 @@ export interface FitnessStateSnapshot {
   plateauAlert: { exercise: string; durationSessions: number; trend: 'flat' | 'upward' | 'downward' } | null;
 }
 
+export type MuscleTimeRange = '7D' | '4W' | '8W' | '12W' | '6M';
+
+export interface MuscleVolumeEntry {
+  volumeKg: number;
+  sets: number;
+  intensity: number;
+  trendPct: number | null;
+  topExercises: string[];
+  trendSeries: { bucketStart: string; volumeKg: number }[];
+}
+
+export interface MuscleVolumeBreakdown {
+  period: { start: string; end: string; rangeDays: number };
+  muscles: Record<string, MuscleVolumeEntry>;
+}
+
 export type WorkoutDayCalendarStatus = 'completed' | 'planned' | 'missed' | 'rest';
 
 export interface WeekCalendarDay {
@@ -446,6 +462,10 @@ export class ApiClient {
 
   async getFitnessState(): Promise<ApiResponse<FitnessStateSnapshot>> {
     return this.get('/ai/fitness-state');
+  }
+
+  async getMuscleVolume(range: MuscleTimeRange): Promise<ApiResponse<MuscleVolumeBreakdown>> {
+    return this.get(`/analytics/muscle-volume?range=${range}`);
   }
 
   async getWeekCalendar(): Promise<ApiResponse<{ days: WeekCalendarDay[] }>> {

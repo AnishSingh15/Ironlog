@@ -52,6 +52,14 @@ const getRecentPerformance = defineTool({
     analyticsService.getRecentPerformance(userId, args.exerciseName, args.sessions),
 });
 
+const getMuscleVolumeBreakdown = defineTool({
+  name: 'getMuscleVolumeBreakdown',
+  description:
+    'Get training volume broken down by individual muscle (chest, lats, quads, etc. - 21 groups), with sets, trend vs the previous equal-length period, and top exercises per muscle. Use this to comment on muscle balance (e.g. one muscle group being neglected relative to others).',
+  parameters: z.object({ rangeDays: z.number().int().min(1).max(182).default(56) }),
+  handler: async (userId, args) => analyticsService.getMuscleVolumeBreakdown(userId, args.rangeDays),
+});
+
 export const analyticsTools = [
   getRecentWorkout,
   getWorkoutHistory,
@@ -59,4 +67,5 @@ export const analyticsTools = [
   getWeeklyVolume,
   getTrainingFrequency,
   getRecentPerformance,
+  getMuscleVolumeBreakdown,
 ];

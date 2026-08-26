@@ -282,4 +282,54 @@ describe('analyticsService', () => {
     expect(adaptations[0]?.setIds).toEqual([incompleteSet.id]);
     expect(adaptations[0]?.recommendation.action).toBeDefined();
   });
+
+  it('getMuscleVolumeBreakdown weights primary/secondary muscles and computes trend vs the prior period', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Muscle User', email: `muscle-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+    const exercise = await prisma.exercise.upsert({
+      where: { name: 'Bench Press' },
+      update: {},
+      create: { name: 'Bench Press', muscleGroup: 'Chest', defaultSets: 3, defaultReps: 8 },
+    });
+
+    const daysAgo = (n: number) => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - n);
+      return d;
+    };
+
+    // Current 28-day window: 70kg x 8 = 560 volume for Bench Press.
+    const currentDay = await prisma.workoutDay.create({ data: { userId: user.id, date: daysAgo(3) } });
+    await prisma.setRecord.create({
+      data: { workoutDayId: currentDay.id, exerciseId: exercise.id, setIndex: 1, actualWeight: 70, actualReps: 8 },
+    });
+
+    // Previous 28-day window (days 29-56 ago): 50kg x 8 = 400 volume, for trend comparison.
+    const previousDay = await prisma.workoutDay.create({ data: { userId: user.id, date: daysAgo(40) } });
+    await prisma.setRecord.create({
+      data: { workoutDayId: previousDay.id, exerciseId: exercise.id, setIndex: 1, actualWeight: 50, actualReps: 8 },
+    });
+
+    const breakdown = await analyticsService.getMuscleVolumeBreakdown(user.id, 28);
+
+    expect(breakdown.period.rangeDays).toBe(28);
+    expect(breakdown.muscles.CHEST).toMatchObject({ volumeKg: 560, sets: 1, intensity: 100, trendPct: 40 });
+    expect(breakdown.muscles.CHEST?.topExercises).toEqual(['Bench Press']);
+    // Secondary muscles get half credit: 560 * 0.5 = 280.
+    expect(breakdown.muscles.SHOULDERS_FRONT).toMatchObject({ volumeKg: 280, sets: 1 });
+    expect(breakdown.muscles.TRICEPS).toMatchObject({ volumeKg: 280, sets: 1 });
+    // sqrt-compressed intensity: round(100 * sqrt(280/560)) = 71, not crushed to a flat 50.
+    expect(breakdown.muscles.SHOULDERS_FRONT?.intensity).toBe(71);
+  });
+
+  it('getMuscleVolumeBreakdown returns no muscles for a user with no workout history', async () => {
+    const user = await prisma.user.create({
+      data: { name: 'Empty User', email: `empty-${Date.now()}@example.com`, passwordHash: 'x' },
+    });
+
+    const breakdown = await analyticsService.getMuscleVolumeBreakdown(user.id, 56);
+    expect(breakdown.muscles).toEqual({});
+  });
 });

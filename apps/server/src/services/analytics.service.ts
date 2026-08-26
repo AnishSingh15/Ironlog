@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client';
+import type { MuscleGroup } from '@musclemap/core';
 import { detectPlateau, type PlateauTrend } from './plateau';
 import { calculateProgress, type ProgressionRecommendation } from './progression';
+import { getMuscleContributions } from './exercise-muscle-map';
 
 const prisma = new PrismaClient();
 
@@ -29,6 +31,28 @@ export interface MuscleGroupVolume {
   muscleGroup: string;
   totalVolume: number;
 }
+
+export interface MuscleVolumeTrendPoint {
+  bucketStart: Date;
+  volumeKg: number;
+}
+
+export interface MuscleVolumeEntry {
+  volumeKg: number;
+  sets: number;
+  intensity: number;
+  trendPct: number | null;
+  topExercises: string[];
+  trendSeries: MuscleVolumeTrendPoint[];
+}
+
+export interface MuscleVolumeBreakdown {
+  period: { start: Date; end: Date; rangeDays: number };
+  muscles: Partial<Record<MuscleGroup, MuscleVolumeEntry>>;
+}
+
+export const MUSCLE_TIME_RANGES = { '7D': 7, '4W': 28, '8W': 56, '12W': 84, '6M': 182 } as const;
+export type MuscleTimeRange = keyof typeof MUSCLE_TIME_RANGES;
 
 export interface PersonalRecord {
   exercise: string;
@@ -439,6 +463,97 @@ export class AnalyticsService {
     }
 
     return adaptations;
+  }
+
+  // Fine-grained (21-muscle) volume breakdown powering the MuscleMap dashboard section.
+  // Reuses the exact `actualWeight * actualReps` formula from getMuscleGroupVolume, just
+  // spread across muscles via the primary/secondary weighting in exercise-muscle-map.ts.
+  // actualWeight is treated as kg with no conversion, matching the existing convention
+  // already established by getPersonalRecords (which labels the raw stored value weightKg).
+  async getMuscleVolumeBreakdown(userId: string, rangeDays: number): Promise<MuscleVolumeBreakdown> {
+    const end = new Date();
+    const start = new Date(end);
+    start.setDate(start.getDate() - rangeDays);
+    const prevStart = new Date(start);
+    prevStart.setDate(prevStart.getDate() - rangeDays);
+
+    const bucketDays = rangeDays <= 7 ? 1 : rangeDays <= 84 ? 7 : 14;
+
+    const [current, previous] = await Promise.all([
+      this.aggregateMuscleVolume(userId, start, end, bucketDays),
+      this.aggregateMuscleVolume(userId, prevStart, start, bucketDays),
+    ]);
+
+    const maxVolume = Math.max(0, ...[...current.values()].map(v => v.volume));
+
+    const muscles: Partial<Record<MuscleGroup, MuscleVolumeEntry>> = {};
+    for (const [group, entry] of current.entries()) {
+      if (entry.volume <= 0) continue;
+      const prevVolume = previous.get(group)?.volume ?? 0;
+      const trendPct =
+        prevVolume > 0 ? Math.round(((entry.volume - prevVolume) / prevVolume) * 100) : entry.volume > 0 ? 100 : null;
+
+      muscles[group] = {
+        volumeKg: Math.round(entry.volume),
+        sets: entry.sets,
+        intensity: maxVolume > 0 ? Math.round(100 * Math.sqrt(entry.volume / maxVolume)) : 0,
+        trendPct,
+        topExercises: [...entry.byExercise.entries()]
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 3)
+          .map(([name]) => name),
+        trendSeries: [...entry.buckets.entries()]
+          .sort((a, b) => a[0] - b[0])
+          .map(([bucketStartMs, volumeKg]) => ({ bucketStart: new Date(bucketStartMs), volumeKg: Math.round(volumeKg) })),
+      };
+    }
+
+    return { period: { start, end, rangeDays }, muscles };
+  }
+
+  private async aggregateMuscleVolume(userId: string, start: Date, end: Date, bucketDays: number) {
+    const records = await prisma.setRecord.findMany({
+      where: {
+        workoutDay: { userId, date: { gte: start, lt: end } },
+        actualWeight: { not: null },
+        actualReps: { not: null },
+      },
+      include: { exercise: true, workoutDay: { select: { date: true } } },
+    });
+
+    const byGroup = new Map<
+      MuscleGroup,
+      { volume: number; sets: number; byExercise: Map<string, number>; buckets: Map<number, number> }
+    >();
+
+    for (const record of records) {
+      const setVolume = (record.actualWeight as number) * (record.actualReps as number);
+      const contributions = getMuscleContributions(record.exercise.name, record.exercise.muscleGroup);
+      if (contributions.length === 0) continue;
+
+      const bucketMs =
+        start.getTime() +
+        Math.floor((record.workoutDay.date.getTime() - start.getTime()) / (bucketDays * 86400000)) *
+          bucketDays *
+          86400000;
+
+      for (const { group, weight } of contributions) {
+        const weighted = setVolume * weight;
+        const entry = byGroup.get(group) ?? {
+          volume: 0,
+          sets: 0,
+          byExercise: new Map<string, number>(),
+          buckets: new Map<number, number>(),
+        };
+        entry.volume += weighted;
+        entry.sets += 1;
+        entry.byExercise.set(record.exercise.name, (entry.byExercise.get(record.exercise.name) ?? 0) + weighted);
+        entry.buckets.set(bucketMs, (entry.buckets.get(bucketMs) ?? 0) + weighted);
+        byGroup.set(group, entry);
+      }
+    }
+
+    return byGroup;
   }
 }
 

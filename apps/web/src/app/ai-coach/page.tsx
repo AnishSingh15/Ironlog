@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Metric } from '@/components/ui/Metric';
 import { AiLoadingIndicator } from '@/components/AiLoadingIndicator';
+import { ChatPanel } from '@/components/ChatPanel';
 import { toast } from '@/components/ui/Toast';
 import { insightAppear } from '@/lib/motion';
 import {
@@ -419,6 +420,10 @@ export default function AICoachPage() {
             )}
           </motion.div>
         )}
+
+        <div className="mt-5">
+          <ChatPanel />
+        </div>
       </div>
     </div>
   );

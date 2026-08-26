@@ -23,6 +23,7 @@ model User {
   fitnessState  FitnessState?
   coachMemories CoachMemory[]
   agentRuns     AgentRun[]
+  chatMessages  CoachChatMessage[]
 
   @@map("users")
 }
@@ -117,6 +118,23 @@ model CoachMemory {
 
   @@index([userId, type])
   @@map("coach_memories")
+}
+
+enum ChatRole {
+  USER
+  ASSISTANT
+}
+
+model CoachChatMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  role      ChatRole
+  content   String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("coach_chat_messages")
 }
 
 model KnowledgeChunk {

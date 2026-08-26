@@ -3,7 +3,7 @@ import { Response, Router } from 'express';
 import { z } from 'zod';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { config } from '../config';
-import { AgentOutputError, runAgent } from '../ai/agentRunner';
+import { AgentOutputError, runAgent, runChatAgent } from '../ai/agentRunner';
 import { agentRunLogger } from '../ai/agentRunLogger';
 import { AiNotConfiguredError, getOpenAIClient } from '../ai/openaiClient';
 import { analyticsTools } from '../ai/tools/analyticsTools';
@@ -300,6 +300,75 @@ router.post('/plan-week/save', async (req: AuthRequest, res: Response) => {
     }
     console.error('Save plan error:', error);
     return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+});
+
+const CHAT_SYSTEM_PROMPT = `You are IronLog's training coach, chatting with the user. Use the provided tools to
+ground every claim in their real training data - never invent numbers, exercises, or history you didn't get from
+a tool call. Keep replies conversational and concise (a few sentences, not a report) unless the user asks for
+detail. This is casual coaching advice, not a substitute for medical care: if the user mentions pain, injury, or
+medical symptoms, tell them to consult a qualified professional instead of diagnosing anything.`;
+
+const CHAT_HISTORY_LIMIT = 50;
+
+router.get('/chat', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const messages = await prisma.coachChatMessage.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'asc' },
+      take: CHAT_HISTORY_LIMIT,
+    });
+    return res.json({ success: true, data: { messages } });
+  } catch (error) {
+    console.error('Chat history error:', error);
+    return res.status(500).json({ success: false, error: { message: 'Internal server error' } });
+  }
+});
+
+const chatMessageSchema = z.object({ message: z.string().min(1).max(2000) });
+
+router.post('/chat', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+
+  try {
+    const { message } = chatMessageSchema.parse(req.body);
+    const client = getOpenAIClient();
+
+    const priorMessages = await prisma.coachChatMessage.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'asc' },
+      take: CHAT_HISTORY_LIMIT,
+    });
+
+    await prisma.coachChatMessage.create({ data: { userId, role: 'USER', content: message } });
+
+    const history = [
+      ...priorMessages.map(m => ({ role: m.role.toLowerCase() as 'user' | 'assistant', content: m.content })),
+      { role: 'user' as const, content: message },
+    ];
+
+    const { reply } = await runChatAgent({
+      client,
+      userId,
+      model: config.openaiModel,
+      systemPrompt: CHAT_SYSTEM_PROMPT,
+      history,
+      tools: coachTools,
+    });
+
+    const saved = await prisma.coachChatMessage.create({ data: { userId, role: 'ASSISTANT', content: reply } });
+
+    return res.json({ success: true, data: { message: saved } });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ success: false, error: { message: 'Invalid input data', details: error.errors } });
+    }
+    if (error instanceof AiNotConfiguredError) {
+      return res.status(503).json({ success: false, error: { message: error.message } });
+    }
+    console.error('Chat error:', error);
+    return res.status(502).json({ success: false, error: { message: 'AI chat is temporarily unavailable' } });
   }
 });
 

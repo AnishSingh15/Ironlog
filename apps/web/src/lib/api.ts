@@ -212,6 +212,13 @@ export interface PlanWeekRequest {
   equipment?: string[];
 }
 
+export interface ChatMessage {
+  id: string;
+  role: 'USER' | 'ASSISTANT';
+  content: string;
+  createdAt: string;
+}
+
 // Token management utilities
 class TokenManager {
   private static readonly ACCESS_TOKEN_KEY = 'accessToken';
@@ -492,6 +499,14 @@ export class ApiClient {
     plan: WeeklyPlan
   ): Promise<ApiResponse<{ savedDays: string[]; skippedDays: { day: string; reason: string }[] }>> {
     return this.post('/ai/plan-week/save', { plan });
+  }
+
+  async getChatHistory(): Promise<ApiResponse<{ messages: ChatMessage[] }>> {
+    return this.get('/ai/chat');
+  }
+
+  async sendChatMessage(message: string): Promise<ApiResponse<{ message: ChatMessage }>> {
+    return this.post('/ai/chat', { message });
   }
 
   async createRestDay(): Promise<ApiResponse<any>> {

@@ -174,10 +174,6 @@ export function MuscleVolumeSection() {
               ))}
             </ol>
 
-            {!selectedGroup && (
-              <p className="text-sm text-text-tertiary">Tap a muscle on the body to see its details.</p>
-            )}
-
             <AnimatePresence>
               {selectedGroup && muscles[selectedGroup] && (
                 <motion.div
